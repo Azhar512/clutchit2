@@ -91,10 +91,6 @@ spacy-loggers==1.0.5
 SQLAlchemy==2.0.38
 srsly==2.5.1
 stripe==11.6.0
-tensorboard==2.18.0
-tensorboard-data-server==0.7.2
-tensorflow==2.18.0
-tensorflow_intel==2.18.0
 termcolor==2.5.0
 thinc==8.3.4
 tqdm==4.67.1
