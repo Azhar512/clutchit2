@@ -28,3 +28,4 @@ dist/
 # VS Code
 .vscode/
 
+"backend/firebase-key.json" 
