@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+venv/
+instance/
+*.db
+*.sqlite3
+*.log
+.env
+
+# Flask
+vaultapp.db
+
+# Node (React)
+node_modules/
+build/
+dist/
+.env.local
+.env.development
+.env.production
+
+# System
+.DS_Store
+
+# VS Code
+.vscode/
+
+"backend/firebase-key.json" 
