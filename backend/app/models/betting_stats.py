@@ -1,4 +1,4 @@
-from app import db
+from backend.app import db
 from datetime import datetime
 
 class BettingStats(db.Model):

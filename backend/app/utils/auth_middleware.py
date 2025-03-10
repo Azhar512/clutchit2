@@ -1,7 +1,7 @@
 from flask import request, jsonify
 from functools import wraps
 import jwt
-from config import Config
+from backend.config import Config
 
 JWT_SECRET_KEY = Config.JWT_SECRET_KEY
 

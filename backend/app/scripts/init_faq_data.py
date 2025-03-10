@@ -1,7 +1,7 @@
 # File: app/scripts/init_faq_data.py
 
-from app.db import db
-from app.models.faq import FAQCategory, FAQ
+from backend.app.db import db
+from backend.app.models.faq import FAQCategory, FAQ
 
 def init_faq_categories():
     """Initialize FAQ categories."""
@@ -99,13 +99,13 @@ def init_faq_questions():
             'category_id': uploading.id,
             'question': 'What bet types are supported?',
             'answer': 'Clutch It supports most common bet types including:\n\n- Money Line\n- Point Spreads\n- Over/Under (Totals)\n- Props\n- Parlays (including mixed-sport parlays)\n- Teasers\n- Live Bets\n\nOur system automatically categorizes your bets by type and sport.'
-        }
+        },
         
         # Marketplace
         {
             'category_id': marketplace.id,
             'question': 'Can I become a Clutch Pick seller?',
-            'answer': 'Yes, Premium and Unlimited subscribers can sell picks on our marketplace. To become a seller:\n\n1. Upgrade to a Premium or Unlimited subscription\n2. Go to Marketplace > Become a Seller\n3. Complete your seller profile\n4. Start listing your picks\n\nYou'll earn 90% of each sale, with 10% going to the platform as a commission.'
+            'answer': 'Yes, Premium and Unlimited subscribers can sell picks on our marketplace. To become a seller:\n\n1. Upgrade to a Premium or Unlimited subscription\n2. Go to Marketplace > Become a Seller\n3. Complete your seller profile\n4. Start listing your picks\n\nYou\'ll earn 90% of each sale, with 10% going to the platform as a commission.'
         },
         {
             'category_id': marketplace.id,

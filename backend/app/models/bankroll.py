@@ -1,7 +1,7 @@
 # File: models/bankroll.py
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
-from app.models import db
+from backend.app.models import db
 
 class Bankroll(db.Model):
     """Bankroll model for storing user bankroll information."""

@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from app.ml.evaluation import calculate_ev  
+from backend.app.ml.evaluation import calculate_ev  
 
 class BetPredictionModel:
     def __init__(self):

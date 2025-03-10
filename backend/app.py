@@ -10,8 +10,7 @@ import os
 load_dotenv()
 
 # Import config
-from config import Config
-
+from backend.config import Config
 # Initialize extensions
 db = SQLAlchemy()
 jwt = JWTManager()
@@ -36,13 +35,13 @@ def create_app():
     CORS(app)  # Enable Cross-Origin Resource Sharing
 
     # Import blueprints
-    from app.api.upload import upload_bp
-    from app.utils.error_handlers import register_error_handlers
-    from app.Routes.leaderboard_routes import leaderboard_routes
-    from app.Routes.bankroll_routes import bankroll_bp
-    from app.Routes.auth_routes import auth_bp
-    from app.Routes.profile_routes import profile_bp
-    from app.Routes.subscription_routes import subscription_bp
+    from backend.app.api.upload import upload_bp
+    from backend.app.utils.error_handlers import register_error_handlers
+    from backend.app.Routes.leaderboard_routes import leaderboard_routes
+    from backend.app.Routes.bankroll_routes import bankroll_bp
+    from backend.app.Routes.auth_routes import auth_bp
+    from backend.app.Routes.profile_routes import profile_bp
+    from backend.app.Routes.subscription_routes import subscription_bp
 
     # Register blueprints
     app.register_blueprint(upload_bp, url_prefix='/api/upload')
