@@ -1,11 +1,8 @@
-import sys
 import os
-
-# Add the project directory to the path
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-
-# Import the create_app function
 from backend.app import create_app
+
+# Set the default environment if not already set
+os.environ.setdefault("FLASK_ENV", "production")
 
 # Create the Flask application
 app = create_app()
@@ -14,4 +11,4 @@ app = create_app()
 application = app
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=os.getenv("FLASK_DEBUG", "False") == "True", host='0.0.0.0', port=int(os.getenv("PORT", 5000)))
