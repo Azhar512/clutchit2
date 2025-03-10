@@ -11,7 +11,7 @@ colorama==0.4.6
 cryptography==44.0.1
 DateTime==5.5
 dnspython==2.7.0
-firebase-admin==6.6.0
+firebase-admin==6.2.0
 Flask==3.1.0
 flask-cors==5.0.1
 Flask-JWT-Extended==4.7.1
@@ -19,13 +19,13 @@ Flask-Migrate==4.1.0
 Flask-RESTful==0.3.10
 Flask-SQLAlchemy==3.1.1
 git-filter-repo==2.47.0
-google-api-core==2.14.0
+google-api-core==2.11.1
 google-api-python-client==2.107.0
 google-auth==2.23.4
 google-auth-httplib2==0.1.1
 google-cloud-core==2.3.3
 google-cloud-firestore==2.11.1
-google-cloud-storage==2.13.0
+google-cloud-storage==2.10.0
 google-cloud-vision==3.4.4
 google-crc32c==1.5.0
 google-resumable-media==2.6.0
