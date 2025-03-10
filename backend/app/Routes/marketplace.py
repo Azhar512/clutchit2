@@ -12,14 +12,12 @@ from backend.app.models.marketplace import MarketplaceItem as PickListing, Marke
 from backend.app.services.stripe_service import process_marketplace_payment
 from backend.app.utils.auth_middleware import auth_required, admin_required
 from backend.app.utils.validators import validate_listing_data
-from backend.config import STRIPE_SECRET_KEY, PLATFORM_FEE_PERCENT
-
+from backend.config import Config
 
 marketplace_bp = Blueprint('marketplace', __name__, url_prefix='/api/marketplace')
 
 # Initialize Stripe
-stripe.api_key = STRIPE_SECRET_KEY
-
+stripe.api_key = Config.STRIPE_SECRET_KEY
 # Subscription tier constants
 BASIC_TIER = "basic"
 UNLIMITED_TIER = "unlimited"
@@ -261,7 +259,7 @@ def buy_pick(listing_id):
         # Process payment via Stripe Connect
         # Calculate platform fee (10%)
         amount = int(listing.price * 100)  # Convert to cents
-        platform_fee = int(amount * PLATFORM_FEE_PERCENT / 100)
+        platform_fee = int(amount * Config.PLATFORM_FEE_PERCENT / 100)
         
         payment_result = process_marketplace_payment(
             amount=amount,
