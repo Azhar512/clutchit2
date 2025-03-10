@@ -1,14 +1,17 @@
+import sys
 import os
+
+# Set the project directory
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+
+# Import the Flask application
 from backend.app import create_app
 
-# Set the default environment if not already set
-os.environ.setdefault("FLASK_ENV", "production")
-
-# Create the Flask application
+# Create the Flask app instance
 app = create_app()
 
-# For WSGI servers like Gunicorn
+# For Gunicorn
 application = app
 
 if __name__ == "__main__":
-    app.run(debug=os.getenv("FLASK_DEBUG", "False") == "True", host='0.0.0.0', port=int(os.getenv("PORT", 5000)))
+    app.run()
