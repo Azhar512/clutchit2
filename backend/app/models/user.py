@@ -39,3 +39,21 @@ class User(db.Model):
             'subscription': self.subscription.to_dict() if self.subscription else None,
             'betting_stats': self.betting_stats.to_dict() if self.betting_stats else None
         }
+
+# Add the Subscription class definition here
+class Subscription(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    plan = db.Column(db.String(50), nullable=False)
+    start_date = db.Column(db.DateTime, default=datetime.utcnow)
+    end_date = db.Column(db.DateTime)
+    is_active = db.Column(db.Boolean, default=True)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'plan': self.plan,
+            'start_date': self.start_date.isoformat(),
+            'end_date': self.end_date.isoformat() if self.end_date else None,
+            'is_active': self.is_active
+        }
