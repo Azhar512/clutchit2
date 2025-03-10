@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models.user import User
-from app.models.subscription import Subscription, SubscriptionType
-from app import db
+from backend.app.models.user import User
+from backend.app.models.subscription import Subscription, SubscriptionType
+from backend.app import db
 from datetime import datetime, timedelta
 import os
 import stripe

@@ -2,10 +2,11 @@
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models.faq import FAQ, FAQCategory
-from app.models.support_ticket import SupportTicket
-from app.db import db
+from backend.app.models.faq import FAQ, FAQCategory
+from backend.app.models.support_ticket import SupportTicket
+from backend.app.db import db
 from datetime import datetime
+
 
 # Create a Blueprint for help-related routes
 help_bp = Blueprint('help', __name__)

@@ -1,8 +1,9 @@
 from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
+from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
-from app.db import db
+
 import os
 
 # Load environment variables
@@ -12,6 +13,7 @@ load_dotenv()
 from config import Config
 
 # Initialize extensions
+db = SQLAlchemy()
 jwt = JWTManager()
 
 def create_app():
@@ -33,7 +35,7 @@ def create_app():
     jwt.init_app(app)
     CORS(app)  # Enable Cross-Origin Resource Sharing
 
-    # Import and register blueprints
+    # Import blueprints
     from app.api.upload import upload_bp
     from app.utils.error_handlers import register_error_handlers
     from app.Routes.leaderboard_routes import leaderboard_routes
@@ -42,6 +44,7 @@ def create_app():
     from app.Routes.profile_routes import profile_bp
     from app.Routes.subscription_routes import subscription_bp
 
+    # Register blueprints
     app.register_blueprint(upload_bp, url_prefix='/api/upload')
     app.register_blueprint(leaderboard_routes)
     app.register_blueprint(bankroll_bp, url_prefix='/api/bankroll')
@@ -56,15 +59,12 @@ def create_app():
     def index():
         return {"message": "Welcome to Clutch App API"}
 
-    # Create database tables if in development mode
-    if app.config.get("ENV") == "development":
-        with app.app_context():
-            db.create_all()
+    # Create database tables (in development)
+    with app.app_context():
+        db.create_all()
 
     return app
 
 if __name__ == '__main__':
-    debug_mode = os.getenv("FLASK_DEBUG", "True").lower() in ['true', '1', 'yes']
-    port = int(os.getenv("PORT", 5000))
     app = create_app()
-    app.run(debug=debug_mode, host='0.0.0.0', port=port)
+    app.run(debug=os.getenv("FLASK_DEBUG", "True") == "True", host='0.0.0.0', port=int(os.getenv("PORT", 5000)))

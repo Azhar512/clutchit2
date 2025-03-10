@@ -19,11 +19,11 @@ def create_app(config_class=Config):
     
     # Register blueprints
     from backend.app.Routes.auth_routes import auth_bp
-    from app.Routes.bets import bp as bets_bp
-    from app.Routes.marketplace import marketplace_bp
-    from app.Routes.predictions import predictions_bp
-    from app.Routes.users import users_bp
-    from app.Routes.admin import bp as admin_bp
+    from backend.app.Routes.bets import bp as bets_bp
+    from backend.app.Routes.marketplace import marketplace_bp
+    from backend.app.Routes.predictions import predictions_bp
+    from backend.app.Routes.users import users_bp
+    from backend.app.Routes.admin import bp as admin_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(bets_bp, url_prefix='/api/bets')

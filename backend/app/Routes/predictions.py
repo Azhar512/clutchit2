@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
-from app.ml.model import get_prediction
-from app import db
+from backend.app.ml.model import get_prediction
+from backend.app import db
 
 predictions_bp = Blueprint('predictions', __name__)
 

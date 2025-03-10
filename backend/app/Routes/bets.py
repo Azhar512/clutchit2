@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, g
-from app.services.ocr_service import OCRService
-from app.models.user import User
-from app.models.bet import Bet
+from backend.app.services.ocr_service import OCRService
+from backend.app.models.user import User
+from backend.app.models.bet import Bet
 import base64
 
 bp = Blueprint('bets', __name__, url_prefix='/api/bets')

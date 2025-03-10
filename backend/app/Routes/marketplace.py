@@ -7,12 +7,13 @@ import stripe
 import uuid
 from datetime import datetime, timedelta
 
-from models.marketplace import PickListing, Transaction
-from models.user import User, Subscription
-from services.stripe_service import process_marketplace_payment
-from utils.auth_utils import auth_required, admin_required
-from utils.validators import validate_listing_data
-from config import STRIPE_SECRET_KEY, PLATFORM_FEE_PERCENT
+from backend.app.models.marketplace import PickListing, Transaction
+from backend.app.models.user import User, Subscription
+from backend.app.services.stripe_service import process_marketplace_payment
+from backend.app.utils.auth_utils import auth_required, admin_required
+from backend.app.utils.validators import validate_listing_data
+from backend.config import STRIPE_SECRET_KEY, PLATFORM_FEE_PERCENT
+
 
 marketplace_bp = Blueprint('marketplace', __name__, url_prefix='/api/marketplace')
 

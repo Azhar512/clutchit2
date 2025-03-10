@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 import numpy as np
-from app.models import db
-from app.models.bet import Bet, BetLeg, BetStatus
-from app.models.bankroll import Bankroll
+from backend.app.models import db
+from backend.app.models.bet import Bet, BetLeg, BetStatus
+from backend.app.models.bankroll import Bankroll
 
 def get_bets_with_ev(user_id=None, limit=None, offset=0, sport_type=None, min_ev=None, 
                     max_ev=None, start_date=None, end_date=None, bet_status=None, 

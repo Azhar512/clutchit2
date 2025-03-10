@@ -1,9 +1,8 @@
 import numpy as np
 from datetime import datetime, timedelta
-from app.models.bankroll import Bankroll, BankrollHistory, WagerRecommendation
-from app.models import db
-from app.services.bet_service import get_bets_with_ev
-
+from backend.app.models.bankroll import Bankroll, BankrollHistory, WagerRecommendation
+from backend.app.models import db
+from backend.app.services.bet_service import get_bets_with_ev
 class BankrollService:
     """Service class for bankroll management calculations."""
     

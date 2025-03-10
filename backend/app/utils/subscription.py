@@ -1,6 +1,6 @@
 # utils/subscription.py (Subscription helpers)
 from flask import current_app
-from app.models.subscription import Subscription, SubscriptionType
+from backend.app.models.subscription import Subscription, SubscriptionType
 from firebase_admin import auth, firestore
 from datetime import datetime, timedelta
 

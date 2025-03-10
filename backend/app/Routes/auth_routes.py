@@ -1,10 +1,11 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
-from app.models.user import User
-from app.models.betting_stats import BettingStats
-from app import db
+from backend.app.models.user import User
+from backend.app.models.betting_stats import BettingStats
+from backend.app import db
 from datetime import datetime
 import re
+
 
 auth_bp = Blueprint('auth', __name__)
 
