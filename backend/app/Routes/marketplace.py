@@ -7,8 +7,8 @@ import stripe
 import uuid
 from datetime import datetime, timedelta
 
-from backend.app.models.marketplace import PickListing, Transaction
 from backend.app.models.user import User, Subscription
+from backend.app.models.marketplace import MarketplaceItem as PickListing, MarketplacePurchase as Transaction
 from backend.app.services.stripe_service import process_marketplace_payment
 from backend.app.utils.auth_middleware import auth_required, admin_required
 from backend.app.utils.validators import validate_listing_data
@@ -22,7 +22,6 @@ stripe.api_key = STRIPE_SECRET_KEY
 
 # Subscription tier constants
 BASIC_TIER = "basic"
-PREMIUM_TIER = "premium"
 UNLIMITED_TIER = "unlimited"
 
 def premium_required(f):

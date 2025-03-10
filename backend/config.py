@@ -8,6 +8,7 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-key-replace-in-production'
     DEBUG = os.environ.get('DEBUG', 'False') == 'True'
     PORT = int(os.environ.get('PORT', 5000))
+    
     # Database configurations
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///clutch_it.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -21,14 +22,19 @@ class Config:
     FIREBASE_CONFIG = os.environ.get('FIREBASE_CONFIG')
     FIREBASE_API_KEY = os.environ.get('FIREBASE_API_KEY', '')
     FIREBASE_AUTH_DOMAIN = os.environ.get('FIREBASE_AUTH_DOMAIN', '')
+    
     # Stripe configurations
     STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
     STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET')
+    
+    # Platform fee percentage for marketplace transactions
+    PLATFORM_FEE_PERCENT = 10  # 10% fee
     
     # Reddit API credentials
     REDDIT_CLIENT_ID = os.environ.get('REDDIT_CLIENT_ID')
     REDDIT_CLIENT_SECRET = os.environ.get('REDDIT_CLIENT_SECRET')
     REDDIT_USER_AGENT = os.environ.get('REDDIT_USER_AGENT')
+    
     # Subscription limits
     BASIC_UPLOADS_LIMIT = 10
     PREMIUM_UPLOADS_LIMIT = float('inf')  # Unlimited
@@ -39,4 +45,3 @@ class Config:
     
     # JWT secret key
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'your_secret_key')
-
