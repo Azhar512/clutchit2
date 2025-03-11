@@ -23,13 +23,11 @@ def create_app(config_class=Config):
     from backend.app.Routes.marketplace import marketplace_bp
     from backend.app.Routes.predictions import predictions_bp
     from backend.app.Routes.users import users_bp
-    from backend.app.Routes.admin import bp as admin_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(bets_bp, url_prefix='/api/bets')
     app.register_blueprint(marketplace_bp, url_prefix='/api/marketplace')
     app.register_blueprint(predictions_bp, url_prefix='/api/predictions')
     app.register_blueprint(users_bp, url_prefix='/api/users')
-    app.register_blueprint(admin_bp, url_prefix='/api/admin')
     
     return app
