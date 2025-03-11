@@ -53,10 +53,16 @@ def create_app():
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
     def serve(path):
-        if path != "" and os.path.exists(app.static_folder + '/' + path):
+        # If the path starts with api, let Flask handle it
+        if path.startswith('api/'):
+            return app.full_dispatch_request()
+        
+        # Check if the file exists in the static folder
+        if path and os.path.exists(os.path.join(app.static_folder, path)):
             return send_from_directory(app.static_folder, path)
-        else:
-            return send_from_directory(app.static_folder, 'index.html')
+        
+        # If the file doesn't exist or no path is specified, serve index.html
+        return send_from_directory(app.static_folder, 'index.html')
 
     with app.app_context():
         db.create_all()
