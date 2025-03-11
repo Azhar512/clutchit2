@@ -1,15 +1,19 @@
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
 import os
 from backend.config import Config
 from backend.app.db import db
+
 db = SQLAlchemy()
 migrate = Migrate()
 
 def create_app(config_class=Config):
-    app = Flask(__name__)
+    # Set static folder to the React build directory
+    static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'frontend', 'build')
+    
+    app = Flask(__name__, static_folder=static_folder, static_url_path='')
     app.config.from_object(config_class)
     
     # Initialize extensions
@@ -29,5 +33,14 @@ def create_app(config_class=Config):
     app.register_blueprint(marketplace_bp, url_prefix='/api/marketplace')
     app.register_blueprint(predictions_bp, url_prefix='/api/predictions')
     app.register_blueprint(users_bp, url_prefix='/api/users')
+    
+    # Serve React App - Root path and all other routes
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def serve(path):
+        if path != "" and os.path.exists(app.static_folder + '/' + path):
+            return send_from_directory(app.static_folder, path)
+        else:
+            return send_from_directory(app.static_folder, 'index.html')
     
     return app
