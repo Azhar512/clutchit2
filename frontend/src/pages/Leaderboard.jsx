@@ -42,6 +42,11 @@ const Leaderboard = () => {
           config
         );
         
+        // Check if requests were successful
+        if (!topPerformersResponse.data.success || !currentUserResponse.data.success) {
+          throw new Error('Failed to fetch leaderboard data');
+        }
+        
         setLeaders(topPerformersResponse.data.data);
         setCurrentUserStats(currentUserResponse.data.data);
         setLoading(false);
