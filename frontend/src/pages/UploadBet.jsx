@@ -1,12 +1,16 @@
-// UploadBet.jsx
 import React from "react";
 import { Upload, Image, FileText } from 'lucide-react';
 import { Card, CardHeader, CardContent, CardTitle } from '../components/ui/card';
 import { useEffect, useState, useRef } from 'react';
+import axios from 'axios'; 
 
 const UploadBet = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const fileInputRef = useRef(null);
   const canvasRef = useRef(null);
   const animationFrameRef = useRef(null);
   
@@ -201,6 +205,58 @@ const UploadBet = () => {
     floatingElements();
   }, []);
 
+  // File validation function
+  const validateFile = (file) => {
+    // Check file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadStatus({
+        type: 'error',
+        message: 'Invalid file type. Please upload JPG, PNG, or PDF files only.'
+      });
+      return false;
+    }
+    
+    // Check file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    if (file.size > maxSize) {
+      setUploadStatus({
+        type: 'error',
+        message: 'File too large. Maximum size is 10MB.'
+      });
+      return false;
+    }
+    
+    return true;
+  };
+
+  // Handle file selection
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (validateFile(file)) {
+      setSelectedFile(file);
+      setUploadStatus({
+        type: 'info',
+        message: `File "${file.name}" selected. Click Upload to submit.`
+      });
+    }
+  };
+
+  // Handle click on upload button
+  const handleUploadClick = () => {
+    fileInputRef.current.click();
+  };
+
+  // Handle manual entry button click
+  const handleManualEntryClick = () => {
+    // Navigate to manual entry form
+    // This depends on your routing implementation
+    // Example: history.push('/manual-bet-entry');
+    console.log('Navigate to manual entry form');
+  };
+
   // Handle drag and drop events
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -214,7 +270,74 @@ const UploadBet = () => {
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
-    // Add your file handling logic here
+    
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    
+    if (validateFile(file)) {
+      setSelectedFile(file);
+      setUploadStatus({
+        type: 'info',
+        message: `File "${file.name}" selected. Click Upload to submit.`
+      });
+    }
+  };
+
+  // Submit file to backend
+  const handleSubmit = async () => {
+    if (!selectedFile) {
+      setUploadStatus({
+        type: 'error',
+        message: 'Please select a file first.'
+      });
+      return;
+    }
+    
+    setIsUploading(true);
+    setUploadStatus({
+      type: 'info',
+      message: 'Uploading bet slip...'
+    });
+    
+    // Create form data
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    
+    try {
+      // Get auth token from localStorage (adjust based on your auth implementation)
+      const token = localStorage.getItem('token');
+      
+      // Send file to backend
+      const response = await axios.post('/api/bets/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      // Handle successful upload
+      setUploadStatus({
+        type: 'success',
+        message: 'Bet slip uploaded successfully! Analyzing your bet...'
+      });
+      
+      // Redirect to bet analysis page after short delay
+      setTimeout(() => {
+        // Navigate to bet analysis page with the bet ID
+        // This depends on your routing implementation
+        // Example: history.push(`/bet/${response.data.bet_id}`);
+        console.log('Navigate to bet analysis page', response.data.bet_id);
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error uploading bet slip:', error);
+      setUploadStatus({
+        type: 'error',
+        message: error.response?.data?.error || 'Failed to upload bet slip. Please try again.'
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -253,24 +376,60 @@ const UploadBet = () => {
           </CardHeader>
           <CardContent>
             <div 
-              className={`dropzone ${isDragging ? 'active-drag' : ''}`}
+              className={`dropzone ${isDragging ? 'active-drag' : ''} ${isUploading ? 'uploading' : ''}`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
             >
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                style={{ display: 'none' }} 
+                accept=".jpg,.jpeg,.png,.pdf" 
+                onChange={handleFileSelect} 
+              />
+              
               <div className="icon-container upload-icon">
                 <Upload className="w-12 h-12 text-indigo-400" />
                 <div className="icon-glow upload-glow"></div>
               </div>
-              <p className="mt-4 text-lg text-indigo-200">
-                Drag and drop your bet slip here, or click to browse
-              </p>
+              
+              {selectedFile ? (
+                <p className="mt-4 text-lg text-indigo-200">
+                  Selected: {selectedFile.name}
+                </p>
+              ) : (
+                <p className="mt-4 text-lg text-indigo-200">
+                  Drag and drop your bet slip here, or click to browse
+                </p>
+              )}
+              
+              {uploadStatus && (
+                <div className={`mt-3 text-sm ${
+                  uploadStatus.type === 'error' ? 'text-red-400' : 
+                  uploadStatus.type === 'success' ? 'text-green-400' : 
+                  'text-indigo-300'
+                }`}>
+                  {uploadStatus.message}
+                </div>
+              )}
+              
               <div className="mt-6 flex justify-center space-x-4">
-                <button className="btn-primary">
-                  <Image className="w-5 h-5 mr-2" />
-                  Upload Image
-                </button>
-                <button className="btn-secondary">
+                {selectedFile ? (
+                  <button 
+                    className="btn-primary" 
+                    onClick={handleSubmit}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? 'Uploading...' : 'Submit Bet'}
+                  </button>
+                ) : (
+                  <button className="btn-primary" onClick={handleUploadClick}>
+                    <Image className="w-5 h-5 mr-2" />
+                    Upload Image
+                  </button>
+                )}
+                <button className="btn-secondary" onClick={handleManualEntryClick}>
                   <FileText className="w-5 h-5 mr-2" />
                   Enter Manually
                 </button>
@@ -470,6 +629,11 @@ const UploadBet = () => {
           box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
         }
         
+        .uploading {
+          background-color: rgba(76, 29, 149, 0.15);
+          border-color: rgba(168, 85, 247, 0.6);
+        }
+        
         .icon-container {
           position: relative;
           width: 80px;
@@ -534,6 +698,12 @@ const UploadBet = () => {
         
         .btn-primary:hover:before {
           left: 100%;
+        }
+        
+        .btn-primary:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+          transform: none;
         }
         
         .btn-secondary {
