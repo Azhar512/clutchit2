@@ -1,8 +1,121 @@
 from datetime import datetime, timedelta
 import numpy as np
+import os
+import uuid
+from flask import request, jsonify
+from werkzeug.utils import secure_filename
+
 from backend.app.models import db
 from backend.app.models.bet import Bet, BetLeg, BetStatus
 from backend.app.models.bankroll import Bankroll
+from app.utils.db_connector import get_db_connection
+
+class BetService:
+    def __init__(self):
+        self.db = get_db_connection()
+        
+    def upload_bet_slip(self, user_id):
+        """Handle bet slip upload from frontend"""
+        try:
+            # Check if image file is provided
+            if 'file' not in request.files:
+                return jsonify({"error": "No file part"}), 400
+                
+            file = request.files['file']
+            
+            # If user does not select file
+            if file.filename == '':
+                return jsonify({"error": "No selected file"}), 400
+                
+            # Check file extension
+            allowed_extensions = {'png', 'jpg', 'jpeg', 'pdf'}
+            if not self._allowed_file(file.filename, allowed_extensions):
+                return jsonify({"error": "File type not allowed"}), 400
+                
+            # Create unique filename
+            filename = secure_filename(file.filename)
+            unique_filename = f"{uuid.uuid4()}_{filename}"
+            
+            # Define upload folder path
+            upload_folder = os.path.join(os.getcwd(), 'app', 'static', 'uploads', 'bet_slips')
+            
+            # Ensure directory exists
+            os.makedirs(upload_folder, exist_ok=True)
+            
+            # Save the file
+            file_path = os.path.join(upload_folder, unique_filename)
+            file.save(file_path)
+            
+            # Store file information in database
+            bet_data = {
+                'user_id': user_id,
+                'slip_image_path': f'/static/uploads/bet_slips/{unique_filename}',
+                'upload_date': datetime.now(),
+                'status': 'pending_analysis'  # Initial status
+            }
+            
+            # Insert record into bets table
+            bet_id = self._insert_bet(bet_data)
+            
+            # Return success response
+            return jsonify({
+                "success": True,
+                "message": "Bet slip uploaded successfully",
+                "bet_id": bet_id,
+                "image_path": bet_data['slip_image_path']
+            }), 201
+            
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+    def _allowed_file(self, filename, allowed_extensions):
+        """Check if file extension is allowed"""
+        return '.' in filename and \
+               filename.rsplit('.', 1)[1].lower() in allowed_extensions
+               
+    def _insert_bet(self, bet_data):
+        """Insert bet record into database"""
+        # Implement database insert logic here based on your db_connector
+        cursor = self.db.cursor()
+        query = """
+        INSERT INTO bets (user_id, slip_image_path, upload_date, status)
+        VALUES (%s, %s, %s, %s)
+        RETURNING id
+        """
+        values = (
+            bet_data['user_id'],
+            bet_data['slip_image_path'],
+            bet_data['upload_date'],
+            bet_data['status']
+        )
+        cursor.execute(query, values)
+        bet_id = cursor.fetchone()[0]
+        self.db.commit()
+        return bet_id
+
+
+def calculate_ev(win_probability, odds):
+    """
+    Calculate the expected value of a bet.
+    
+    Args:
+        win_probability (float): Probability of winning (0.0 to 1.0)
+        odds (float): Decimal odds (e.g., 2.5 for +150 American odds)
+        
+    Returns:
+        float: Expected value of the bet
+    """
+    if win_probability <= 0 or win_probability >= 1:
+        return 0
+    
+    # EV = (Probability of Win × Potential Profit) - (Probability of Loss × Stake)
+    potential_profit = odds - 1  # Potential profit on a $1 stake
+    probability_loss = 1 - win_probability
+    
+    ev = (win_probability * potential_profit) - (probability_loss * 1)
+    
+    return round(ev, 4)
+
 
 def get_bets_with_ev(user_id=None, limit=None, offset=0, sport_type=None, min_ev=None, 
                     max_ev=None, start_date=None, end_date=None, bet_status=None, 
@@ -102,27 +215,6 @@ def get_bets_with_ev(user_id=None, limit=None, offset=0, sport_type=None, min_ev
     
     return result
 
-def calculate_ev(win_probability, odds):
-    """
-    Calculate the expected value of a bet.
-    
-    Args:
-        win_probability (float): Probability of winning (0.0 to 1.0)
-        odds (float): Decimal odds (e.g., 2.5 for +150 American odds)
-        
-    Returns:
-        float: Expected value of the bet
-    """
-    if win_probability <= 0 or win_probability >= 1:
-        return 0
-    
-    # EV = (Probability of Win × Potential Profit) - (Probability of Loss × Stake)
-    potential_profit = odds - 1  # Potential profit on a $1 stake
-    probability_loss = 1 - win_probability
-    
-    ev = (win_probability * potential_profit) - (probability_loss * 1)
-    
-    return round(ev, 4)
 
 def get_high_ev_bets(min_ev=0.1, limit=10):
     """
@@ -137,59 +229,6 @@ def get_high_ev_bets(min_ev=0.1, limit=10):
     """
     return get_bets_with_ev(min_ev=min_ev, limit=limit, sort_by="expected_value", sort_order="desc")
 
-def get_user_bet_performance(user_id):
-    """
-    Get a summary of a user's betting performance.
-    
-    Args:
-        user_id (int): User ID to get performance for
-        
-    Returns:
-        dict: Dictionary containing performance metrics
-    """
-    bets = get_bets_with_ev(user_id=user_id)
-    
-    total_bets = len(bets)
-    if total_bets == 0:
-        return {
-            'total_bets': 0,
-            'won_bets': 0,
-            'lost_bets': 0,
-            'pending_bets': 0,
-            'win_rate': 0,
-            'total_wagered': 0,
-            'total_profit': 0,
-            'roi': 0,
-            'average_ev': 0
-        }
-    
-    won_bets = sum(1 for bet in bets if bet['status'] == BetStatus.WON)
-    lost_bets = sum(1 for bet in bets if bet['status'] == BetStatus.LOST)
-    pending_bets = sum(1 for bet in bets if bet['status'] == BetStatus.PENDING)
-    
-    total_wagered = sum(bet['bet_amount'] for bet in bets)
-    
-    total_profit = sum(bet['potential_payout'] - bet['bet_amount'] 
-                      for bet in bets if bet['status'] == BetStatus.WON)
-    total_profit -= sum(bet['bet_amount'] for bet in bets if bet['status'] == BetStatus.LOST)
-    
-    roi = (total_profit / total_wagered) * 100 if total_wagered > 0 else 0
-    
-    average_ev = sum(bet['expected_value'] for bet in bets) / total_bets
-    
-    win_rate = (won_bets / (won_bets + lost_bets)) * 100 if (won_bets + lost_bets) > 0 else 0
-    
-    return {
-        'total_bets': total_bets,
-        'won_bets': won_bets,
-        'lost_bets': lost_bets,
-        'pending_bets': pending_bets,
-        'win_rate': round(win_rate, 2),
-        'total_wagered': round(total_wagered, 2),
-        'total_profit': round(total_profit, 2),
-        'roi': round(roi, 2),
-        'average_ev': round(average_ev, 4)
-    }
 
 def get_parlay_recommendations(user_id, max_legs=3, min_leg_ev=0.05):
     """
@@ -252,6 +291,62 @@ def get_parlay_recommendations(user_id, max_legs=3, min_leg_ev=0.05):
             parlays.append(parlay)
     
     return parlays
+
+
+def get_user_bet_performance(user_id):
+    """
+    Get a summary of a user's betting performance.
+    
+    Args:
+        user_id (int): User ID to get performance for
+        
+    Returns:
+        dict: Dictionary containing performance metrics
+    """
+    bets = get_bets_with_ev(user_id=user_id)
+    
+    total_bets = len(bets)
+    if total_bets == 0:
+        return {
+            'total_bets': 0,
+            'won_bets': 0,
+            'lost_bets': 0,
+            'pending_bets': 0,
+            'win_rate': 0,
+            'total_wagered': 0,
+            'total_profit': 0,
+            'roi': 0,
+            'average_ev': 0
+        }
+    
+    won_bets = sum(1 for bet in bets if bet['status'] == BetStatus.WON)
+    lost_bets = sum(1 for bet in bets if bet['status'] == BetStatus.LOST)
+    pending_bets = sum(1 for bet in bets if bet['status'] == BetStatus.PENDING)
+    
+    total_wagered = sum(bet['bet_amount'] for bet in bets)
+    
+    total_profit = sum(bet['potential_payout'] - bet['bet_amount'] 
+                      for bet in bets if bet['status'] == BetStatus.WON)
+    total_profit -= sum(bet['bet_amount'] for bet in bets if bet['status'] == BetStatus.LOST)
+    
+    roi = (total_profit / total_wagered) * 100 if total_wagered > 0 else 0
+    
+    average_ev = sum(bet['expected_value'] for bet in bets) / total_bets
+    
+    win_rate = (won_bets / (won_bets + lost_bets)) * 100 if (won_bets + lost_bets) > 0 else 0
+    
+    return {
+        'total_bets': total_bets,
+        'won_bets': won_bets,
+        'lost_bets': lost_bets,
+        'pending_bets': pending_bets,
+        'win_rate': round(win_rate, 2),
+        'total_wagered': round(total_wagered, 2),
+        'total_profit': round(total_profit, 2),
+        'roi': round(roi, 2),
+        'average_ev': round(average_ev, 4)
+    }
+
 
 def kelly_criterion(win_probability, odds):
     """
