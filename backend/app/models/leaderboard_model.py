@@ -3,7 +3,6 @@ from ..utils.db_connector import get_db_connection
 class LeaderboardModel:
     def __init__(self):
         self.db = get_db_connection()
-        self.collection = self.db.leaderboard_stats
     
     def get_top_performers(self, limit=5):
         """
@@ -15,9 +14,28 @@ class LeaderboardModel:
         Returns:
             list: List of top performers with their stats
         """
-        # Query the database for top performers sorted by profit in descending order
-        cursor = self.collection.find().sort('profit', -1).limit(limit)
-        return list(cursor)
+        query = """
+        SELECT 
+            user_id,
+            wins,
+            losses,
+            profit,
+            current_streak,
+            CASE 
+                WHEN (wins + losses) > 0 THEN ROUND(wins * 100.0 / (wins + losses), 1)
+                ELSE 0.0
+            END as win_rate
+        FROM 
+            leaderboard_stats
+        ORDER BY 
+            profit DESC
+        LIMIT %s
+        """
+        
+        with self.db.cursor() as cursor:
+            cursor.execute(query, (limit,))
+            columns = [desc[0] for desc in cursor.description]
+            return [dict(zip(columns, row)) for row in cursor.fetchall()]
     
     def get_user_ranking(self, user_id):
         """
@@ -29,18 +47,19 @@ class LeaderboardModel:
         Returns:
             int: User's ranking
         """
-        # Get user's profit
-        user_stats = self.collection.find_one({'user_id': user_id})
-        if not user_stats:
-            return None
+        query = """
+        SELECT 
+            (SELECT COUNT(*) + 1 FROM leaderboard_stats WHERE profit > t.profit) as rank
+        FROM 
+            leaderboard_stats t
+        WHERE 
+            user_id = %s
+        """
         
-        # Count how many users have higher profit
-        higher_profit_count = self.collection.count_documents({
-            'profit': {'$gt': user_stats['profit']}
-        })
-        
-        # User's rank is higher_profit_count + 1
-        return higher_profit_count + 1
+        with self.db.cursor() as cursor:
+            cursor.execute(query, (user_id,))
+            result = cursor.fetchone()
+            return result[0] if result else None
     
     def get_user_stats(self, user_id):
         """
@@ -52,7 +71,28 @@ class LeaderboardModel:
         Returns:
             dict: User's betting stats
         """
-        return self.collection.find_one({'user_id': user_id})
+        query = """
+        SELECT 
+            user_id,
+            wins,
+            losses,
+            profit,
+            current_streak,
+            CASE 
+                WHEN (wins + losses) > 0 THEN ROUND(wins * 100.0 / (wins + losses), 1)
+                ELSE 0.0
+            END as win_rate
+        FROM 
+            leaderboard_stats
+        WHERE 
+            user_id = %s
+        """
+        
+        with self.db.cursor() as cursor:
+            cursor.execute(query, (user_id,))
+            columns = [desc[0] for desc in cursor.description]
+            result = cursor.fetchone()
+            return dict(zip(columns, result)) if result else None
     
     def get_user_percentile(self, user_id):
         """
@@ -64,13 +104,23 @@ class LeaderboardModel:
         Returns:
             int: User's percentile (e.g., 5 means top 5%)
         """
-        # Get total number of users
-        total_users = self.collection.count_documents({})
+        query = """
+        WITH user_rank AS (
+            SELECT 
+                (SELECT COUNT(*) + 1 FROM leaderboard_stats WHERE profit > t.profit) as rank
+            FROM 
+                leaderboard_stats t
+            WHERE 
+                user_id = %s
+        ),
+        total_users AS (
+            SELECT COUNT(*) as count FROM leaderboard_stats
+        )
+        SELECT ROUND((user_rank.rank * 100.0) / total_users.count) 
+        FROM user_rank, total_users
+        """
         
-        # Get user's ranking
-        ranking = self.get_user_ranking(user_id)
-        
-        # Calculate percentile
-        percentile = round((ranking / total_users) * 100)
-        
-        return percentile
+        with self.db.cursor() as cursor:
+            cursor.execute(query, (user_id,))
+            result = cursor.fetchone()
+            return result[0] if result else None

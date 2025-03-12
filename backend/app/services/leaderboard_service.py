@@ -29,7 +29,7 @@ class LeaderboardService:
                 'userId': leader['user_id'],
                 'username': user_data['username'],
                 'winRate': f"{leader['win_rate']}%",
-                'profit': leader['profit'],
+                'profit': float(leader['profit']),  # Convert Decimal to float for JSON serialization
                 'streak': leader['current_streak'],
                 'profileImage': user_data.get('profile_image', None)
             })
@@ -49,6 +49,19 @@ class LeaderboardService:
         # Get user's ranking
         ranking = self.leaderboard_model.get_user_ranking(user_id)
         
+        # If user not found, return default values
+        if ranking is None:
+            return {
+                'rank': 'N/A',
+                'userId': user_id,
+                'username': 'New User',
+                'winRate': '0.0%',
+                'profit': 0,
+                'streak': 0,
+                'percentile': 'No ranking yet',
+                'profileImage': None
+            }
+        
         # Get user data
         user_data = self.user_model.get_user_by_id(user_id)
         
@@ -63,7 +76,7 @@ class LeaderboardService:
             'userId': user_id,
             'username': user_data['username'],
             'winRate': f"{stats['win_rate']}%",
-            'profit': stats['profit'],
+            'profit': float(stats['profit']),  # Convert Decimal to float for JSON serialization
             'streak': stats['current_streak'],
             'percentile': f"Top {percentile}% of users",
             'profileImage': user_data.get('profile_image', None)
