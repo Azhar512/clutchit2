@@ -1,50 +1,118 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Bell, Settings, CreditCard, LogOut } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Bell, Settings, CreditCard, LogOut, Save, X, Edit } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Switch } from "../components/ui/switch";
+import { useToast } from "../components/ui/use-toast";
 import axios from 'axios';
+
 const Profile = () => {
+  const { toast } = useToast();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const canvasRef = useRef(null);
   const animationFrameRef = useRef(null);
+  
   const [userProfile, setUserProfile] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editedProfile, setEditedProfile] = useState({});
+  const [currentView, setCurrentView] = useState('general'); // general, notifications, billing, etc.
+
+  // API URL
+  const API_URL = 'http://localhost:5000/api';
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        // Get token from localStorage
-        const token = localStorage.getItem('access_token');
-        
-        if (!token) {
-          throw new Error("Not authenticated");
-        }
-        
-        // Make request to backend
-        const response = await axios.get('http://localhost:5000/api/profile/', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        setUserProfile(response.data);
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching profile:", err);
-        setError("Failed to load profile data");
-        setLoading(false);
-        
-        // Handle token refresh or redirect to login if needed
-        if (err.response && err.response.status === 401) {
-          // Redirect to login or refresh token
-        }
-      }
-    };
-    
     fetchUserProfile();
   }, []);
 
-  // Handle mouse movement for interactive light effects
+  const fetchUserProfile = async () => {
+    try {
+      // Get token from localStorage
+      const token = localStorage.getItem('access_token');
+      
+      if (!token) {
+        throw new Error("Not authenticated");
+      }
+      
+      // Make request to backend
+      const response = await axios.get(`${API_URL}/profile/`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      setUserProfile(response.data);
+      setEditedProfile(response.data);
+      setLoading(false);
+    } catch (err) {
+      console.error("Error fetching profile:", err);
+      setError("Failed to load profile data");
+      setLoading(false);
+      
+      // Handle token refresh or redirect to login if needed
+      if (err.response && err.response.status === 401) {
+        // Redirect to login
+        window.location.href = '/login';
+      }
+      
+      toast({
+        title: "Error",
+        description: "Failed to load profile data. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const updateProfile = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      
+      if (!token) {
+        throw new Error("Not authenticated");
+      }
+      
+      // Make PUT request to update profile
+      await axios.put(`${API_URL}/profile/`, editedProfile, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      setUserProfile(editedProfile);
+      setEditMode(false);
+      
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+        variant: "success"
+      });
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditedProfile({
+      ...editedProfile,
+      [name]: value
+    });
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    window.location.href = '/login';
+  };
+
+  // Mouse movement and animations
   useEffect(() => {
     const handleMouseMove = (event) => {
       setMousePosition({
@@ -59,7 +127,7 @@ const Profile = () => {
     };
   }, []);
 
-  // Setup particle animation on canvas
+  // Canvas animation setup code (same as before)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -206,7 +274,7 @@ const Profile = () => {
     };
   }, [mousePosition]);
 
-  // Animate light effects
+  // Setup animation effects
   useEffect(() => {
     const animateStars = () => {
       const stars = document.querySelectorAll('.star-effect');
@@ -232,19 +300,218 @@ const Profile = () => {
     floatingElements();
   }, []);
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-900">
+        <div className="text-red-500 text-xl">{error}</div>
+        <button 
+          onClick={fetchUserProfile}
+          className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-md text-white"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  // Render account settings based on current view
+  const renderSettingsContent = () => {
+    switch(currentView) {
+      case 'general':
+        return (
+          <div className="space-y-4">
+            {editMode ? (
+              <>
+                <div className="space-y-3">
+                  <label className="text-gray-300 block">Full Name</label>
+                  <Input 
+                    name="name"
+                    value={editedProfile.name || ''}
+                    onChange={handleInputChange}
+                    className="bg-white/5 border-purple-900/30 text-white"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <label className="text-gray-300 block">Username</label>
+                  <Input 
+                    name="username"
+                    value={editedProfile.username || ''}
+                    onChange={handleInputChange}
+                    className="bg-white/5 border-purple-900/30 text-white"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <label className="text-gray-300 block">Email</label>
+                  <Input 
+                    name="email"
+                    value={editedProfile.email || ''}
+                    onChange={handleInputChange}
+                    className="bg-white/5 border-purple-900/30 text-white"
+                  />
+                </div>
+                <div className="flex justify-end space-x-2 mt-4">
+                  <Button 
+                    variant="outline" 
+                    className="border-red-500/30 text-red-300 hover:bg-red-900/20"
+                    onClick={() => {
+                      setEditedProfile(userProfile);
+                      setEditMode(false);
+                    }}
+                  >
+                    <X className="w-4 h-4 mr-2" /> Cancel
+                  </Button>
+                  <Button 
+                    className="bg-purple-700 hover:bg-purple-600" 
+                    onClick={updateProfile}
+                  >
+                    <Save className="w-4 h-4 mr-2" /> Save Changes
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex justify-between items-center p-2 hover:bg-white/5 rounded transition-all duration-300">
+                  <span className="text-gray-300">Full Name</span>
+                  <span className="text-white">{userProfile.name}</span>
+                </div>
+                <div className="flex justify-between items-center p-2 hover:bg-white/5 rounded transition-all duration-300">
+                  <span className="text-gray-300">Username</span>
+                  <span className="text-white">@{userProfile.username}</span>
+                </div>
+                <div className="flex justify-between items-center p-2 hover:bg-white/5 rounded transition-all duration-300">
+                  <span className="text-gray-300">Email</span>
+                  <span className="text-white">{userProfile.email || "Not set"}</span>
+                </div>
+                <div className="flex justify-between items-center p-2 hover:bg-white/5 rounded transition-all duration-300">
+                  <span className="text-gray-300">Member Since</span>
+                  <span className="text-white">{userProfile.joinDate}</span>
+                </div>
+                <Button 
+                  className="mt-4 w-full bg-white/5 hover:bg-white/10 text-white border border-purple-500/20" 
+                  onClick={() => setEditMode(true)}
+                >
+                  <Edit className="w-4 h-4 mr-2" /> Edit Profile
+                </Button>
+              </>
+            )}
+          </div>
+        );
+      case 'notifications':
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-2 hover:bg-white/5 rounded transition-all duration-300">
+              <div>
+                <span className="text-white block">Betting Notifications</span>
+                <span className="text-gray-400 text-sm">Receive alerts about odds changes and bet results</span>
+              </div>
+              <Switch defaultChecked />
+            </div>
+            <div className="flex items-center justify-between p-2 hover:bg-white/5 rounded transition-all duration-300">
+              <div>
+                <span className="text-white block">Email Notifications</span>
+                <span className="text-gray-400 text-sm">Receive our newsletter and important updates</span>
+              </div>
+              <Switch defaultChecked />
+            </div>
+            <div className="flex items-center justify-between p-2 hover:bg-white/5 rounded transition-all duration-300">
+              <div>
+                <span className="text-white block">Picks Marketplace</span>
+                <span className="text-gray-400 text-sm">Notifications when your picks are purchased</span>
+              </div>
+              <Switch defaultChecked />
+            </div>
+            <div className="flex items-center justify-between p-2 hover:bg-white/5 rounded transition-all duration-300">
+              <div>
+                <span className="text-white block">Game Start Reminders</span>
+                <span className="text-gray-400 text-sm">Get notifications when games with your bets start</span>
+              </div>
+              <Switch defaultChecked />
+            </div>
+          </div>
+        );
+      case 'billing':
+        return (
+          <div className="space-y-4">
+            <div className="p-4 border border-purple-500/20 rounded-lg bg-white/5">
+              <h3 className="text-white font-medium">Current Plan</h3>
+              <div className="mt-2 flex justify-between">
+                <span className="text-gray-300">{userProfile.subscription || "Free"}</span>
+                <span className="text-purple-400 font-medium">
+                  {userProfile.subscription === "Free" ? "$0/month" : 
+                   userProfile.subscription === "Pro" ? "$19.99/month" : 
+                   userProfile.subscription === "Elite" ? "$49.99/month" : ""}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-white font-medium">Available Plans</h3>
+              <div className="grid gap-3">
+                <div className={`p-3 border rounded-lg ${userProfile.subscription === "Free" ? "border-green-500/50 bg-green-900/10" : "border-purple-500/20 bg-white/5"}`}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="text-white">Free</h4>
+                      <p className="text-gray-400 text-sm">Basic predictions and general statistics</p>
+                    </div>
+                    <span className="text-white font-medium">$0/month</span>
+                  </div>
+                </div>
+                <div className={`p-3 border rounded-lg ${userProfile.subscription === "Pro" ? "border-green-500/50 bg-green-900/10" : "border-purple-500/20 bg-white/5"}`}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="text-white">Pro</h4>
+                      <p className="text-gray-400 text-sm">Advanced predictions and detailed analytics</p>
+                    </div>
+                    <span className="text-white font-medium">$19.99/month</span>
+                  </div>
+                </div>
+                <div className={`p-3 border rounded-lg ${userProfile.subscription === "Elite" ? "border-green-500/50 bg-green-900/10" : "border-purple-500/20 bg-white/5"}`}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="text-white">Elite</h4>
+                      <p className="text-gray-400 text-sm">Premium predictions with edge insights and early picks</p>
+                    </div>
+                    <span className="text-white font-medium">$49.99/month</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <Button className="w-full bg-purple-700 hover:bg-purple-600">
+              Upgrade My Subscription
+            </Button>
+          </div>
+        );
+      case 'logout':
+        handleLogout();
+        return null;
+      default:
+        return null;
+    }
+  };
+
+  // Main render
   return (
-    <div className="dashboard-container">
+    <div className="dashboard-container min-h-screen bg-gray-900 py-8">
       {/* Canvas for background animations */}
-      <canvas ref={canvasRef} className="animation-canvas"></canvas>
+      <canvas ref={canvasRef} className="animation-canvas fixed top-0 left-0 w-full h-full z-0"></canvas>
       
       {/* Background Elements */}
-      <div className="star-effect star-1"></div>
-      <div className="star-effect star-2"></div>
-      <div className="star-effect star-3"></div>
-      <div className="star-effect star-4"></div>
-      <div className="star-effect star-5"></div>
+      <div className="star-effect star-1 fixed"></div>
+      <div className="star-effect star-2 fixed"></div>
+      <div className="star-effect star-3 fixed"></div>
+      <div className="star-effect star-4 fixed"></div>
+      <div className="star-effect star-5 fixed"></div>
       
-      <div className="mouse-follow-light" style={{
+      <div className="mouse-follow-light fixed pointer-events-none" style={{
         left: `${mousePosition.x}px`,
         top: `${mousePosition.y}px`
       }}></div>
