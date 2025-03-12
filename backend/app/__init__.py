@@ -24,7 +24,7 @@ def create_app(config_class=Config):
     # Register blueprints
     from backend.app.Routes.auth_routes import auth_bp
     from backend.app.Routes.bets import bp as bets_bp
-    from backend.app.Routes.marketplace import marketplace_bp
+    from backend.app.Routes.marketplace_routes import marketplace_bp
     from backend.app.Routes.predictions import predictions_bp
     from backend.app.Routes.users import users_bp
     

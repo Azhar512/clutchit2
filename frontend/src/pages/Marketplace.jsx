@@ -1,77 +1,148 @@
 import React from "react";
-
 import { useState, useRef, useEffect } from 'react';
 import { Card, CardHeader, CardContent, CardTitle } from "../components/ui/card";
 import { ShoppingCart, Star, Award, Users, TrendingUp, ChevronRight } from 'lucide-react';
+import axios from 'axios'; // Make sure axios is installed
 
 const Marketplace = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const canvasRef = useRef(null);
   const animationFrameRef = useRef(null);
   
-  const clutchPicks = [
-    {
-      author: "TopBettor",
-      title: "NBA Parlay Special",
-      description: "3-team parlay with detailed analysis",
-      price: 29.99,
-      rating: 4.8,
-      sales: 156,
-      trending: true,
-      popularTag: "Top Seller"
-    },
-    {
-      author: "BettingPro",
-      title: "MLB Daily Picks",
-      description: "Top baseball picks for today",
-      price: 19.99,
-      rating: 4.6,
-      sales: 89,
-      trending: false,
-      popularTag: "Hot Pick"
-    },
-    {
-      author: "ClutchMaster",
-      title: "NFL Week 5 Locks",
-      description: "Best football picks of the week",
-      price: 24.99,
-      rating: 4.7,
-      sales: 112,
-      trending: true,
-      popularTag: "Featured"
-    },
-    {
-      author: "OddsExpert",
-      title: "NHL Special",
-      description: "Expert hockey analysis and picks",
-      price: 17.99,
-      rating: 4.5,
-      sales: 76,
-      trending: false,
-      popularTag: "Value Pick"
-    },
-  ];
-
-  const featuredPicks = [
-    {
-      title: "Ultimate Parlay Bundle",
-      price: 49.99,
-      description: "Get access to our top 5 parlays across all major sports with detailed analysis",
-      author: "ProBettingTeam",
-      rating: 4.9,
-      sales: 287,
-      image: "/api/placeholder/400/200"
-    },
-    {
-      title: "Weekend Special",
-      price: 34.99,
-      description: "Full weekend coverage with our best picks across NFL, NBA, and UFC events",
-      author: "ElitePicksDaily",
-      rating: 4.8,
-      sales: 176,
-      image: "/api/placeholder/400/200"
+  // State for data from backend
+  const [featuredPicks, setFeaturedPicks] = useState([]);
+  const [clutchPicks, setClutchPicks] = useState([]);
+  const [trendingCategories, setTrendingCategories] = useState(['NBA', 'NFL', 'MLB', 'UFC']);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Fetch data from backend
+  useEffect(() => {
+    const fetchMarketplaceData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch featured picks
+        const featuredResponse = await axios.get('/api/marketplace/featured');
+        if (featuredResponse.data.success) {
+          setFeaturedPicks(featuredResponse.data.data);
+        }
+        
+        // Fetch clutch picks
+        const clutchResponse = await axios.get('/api/marketplace/clutch-picks');
+        if (clutchResponse.data.success) {
+          setClutchPicks(clutchResponse.data.data);
+        }
+        
+        // Fetch trending categories
+        const categoriesResponse = await axios.get('/api/marketplace/trending-categories');
+        if (categoriesResponse.data.success && categoriesResponse.data.data.length > 0) {
+          setTrendingCategories(categoriesResponse.data.data.map(cat => cat.name));
+        }
+        
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching marketplace data:', err);
+        setError('Failed to load marketplace data. Please try again later.');
+        setLoading(false);
+        
+        // Use sample data as fallback
+        setFeaturedPicks([
+          {
+            title: "Ultimate Parlay Bundle",
+            price: 49.99,
+            description: "Get access to our top 5 parlays across all major sports with detailed analysis",
+            author: "ProBettingTeam",
+            rating: 4.9,
+            sales: 287,
+            image: "/api/placeholder/400/200"
+          },
+          {
+            title: "Weekend Special",
+            price: 34.99,
+            description: "Full weekend coverage with our best picks across NFL, NBA, and UFC events",
+            author: "ElitePicksDaily",
+            rating: 4.8,
+            sales: 176,
+            image: "/api/placeholder/400/200"
+          }
+        ]);
+        
+        setClutchPicks([
+          {
+            author: "TopBettor",
+            title: "NBA Parlay Special",
+            description: "3-team parlay with detailed analysis",
+            price: 29.99,
+            rating: 4.8,
+            sales: 156,
+            trending: true,
+            popularTag: "Top Seller"
+          },
+          {
+            author: "BettingPro",
+            title: "MLB Daily Picks",
+            description: "Top baseball picks for today",
+            price: 19.99,
+            rating: 4.6,
+            sales: 89,
+            trending: false,
+            popularTag: "Hot Pick"
+          },
+          {
+            author: "ClutchMaster",
+            title: "NFL Week 5 Locks",
+            description: "Best football picks of the week",
+            price: 24.99,
+            rating: 4.7,
+            sales: 112,
+            trending: true,
+            popularTag: "Featured"
+          },
+          {
+            author: "OddsExpert",
+            title: "NHL Special",
+            description: "Expert hockey analysis and picks",
+            price: 17.99,
+            rating: 4.5,
+            sales: 76,
+            trending: false,
+            popularTag: "Value Pick"
+          }
+        ]);
+      }
+    };
+    
+    fetchMarketplaceData();
+  }, []);
+  
+  // Handle purchase click
+  const handlePurchase = async (pickId) => {
+    try {
+      // Check if user is logged in
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        // Redirect to login or show login modal
+        alert('Please log in to purchase picks');
+        return;
+      }
+      
+      const response = await axios.post('/api/marketplace/purchase', 
+        { pick_id: pickId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.success) {
+        alert('Pick purchased successfully!');
+        // Optional: Update UI to show purchase was successful
+      } else {
+        alert(response.data.message || 'Purchase failed. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error purchasing pick:', err);
+      alert('Error processing your purchase. Please try again later.');
     }
-  ];
+  };
 
   // Handle mouse movement for interactive light effects
   useEffect(() => {
@@ -264,6 +335,36 @@ const Marketplace = () => {
     floatingElements();
   }, []);
 
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="marketplace-container flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="spinner"></div>
+          <p className="mt-4 text-white">Loading marketplace...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show error state
+  if (error) {
+    return (
+      <div className="marketplace-container flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="text-red-500 text-2xl mb-4">⚠️</div>
+          <p className="text-white">{error}</p>
+          <button 
+            className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-md"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="marketplace-container">
       {/* Canvas for background animations */}
@@ -339,7 +440,10 @@ const Marketplace = () => {
                     <span className="ml-1 text-sm text-gray-300">{pick.rating}</span>
                     <span className="ml-2 text-sm text-gray-400">({pick.sales} sales)</span>
                   </div>
-                  <button className="purchase-btn flex items-center">
+                  <button 
+                    className="purchase-btn flex items-center"
+                    onClick={() => handlePurchase(pick.id)}
+                  >
                     <span>Purchase</span>
                     <ShoppingCart className="ml-2 w-4 h-4" />
                   </button>
@@ -357,7 +461,7 @@ const Marketplace = () => {
           <span className="text-glow">Trending Categories</span>
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {['NBA', 'NFL', 'MLB', 'UFC'].map((category, index) => (
+          {trendingCategories.map((category, index) => (
             <div key={index} className="category-card floating">
               <div className="category-glow"></div>
               <span>{category}</span>
