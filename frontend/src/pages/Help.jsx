@@ -1,5 +1,4 @@
 import React from "react";
-
 import { Search, FileQuestion, MessageCircle, ExternalLink, HelpCircle, Book, CreditCard, Upload, ShoppingBag, Zap } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { useEffect, useState, useRef } from 'react';
@@ -25,19 +24,32 @@ const Help = () => {
     questions: null
   });
 
+  // Define icons map for category icons
+  const categoryIconMap = {
+    'account': HelpCircle,
+    'billing': CreditCard,
+    'bets': ShoppingBag,
+    'predictions': Zap,
+    'technical': FileQuestion,
+    'general': Book,
+    'uploads': Upload,
+    'support': MessageCircle
+  };
+
   // Fetch FAQ categories and popular questions from API
   useEffect(() => {
     const fetchFaqCategories = async () => {
       setLoading(prev => ({ ...prev, categories: true }));
       try {
-        const response = await axios.get('/api/help/faq-categories');
-        if (response.data.success) {
-          setFaqCategories(response.data.categories);
-        } else {
-          setError(prev => ({ ...prev, categories: 'Failed to fetch categories' }));
-        }
+        // Updated to use your Flask backend endpoint
+        const response = await axios.get('/api/help/categories');
+        setFaqCategories(response.data.categories.map(category => ({
+          ...category,
+          icon: categoryIconMap[category.slug] || HelpCircle
+        })));
       } catch (err) {
-        setError(prev => ({ ...prev, categories: err.message }));
+        console.error("Error fetching FAQ categories:", err);
+        setError(prev => ({ ...prev, categories: err.message || 'Failed to fetch categories' }));
       } finally {
         setLoading(prev => ({ ...prev, categories: false }));
       }
@@ -46,14 +58,12 @@ const Help = () => {
     const fetchPopularQuestions = async () => {
       setLoading(prev => ({ ...prev, questions: true }));
       try {
+        // Updated to use your Flask backend endpoint
         const response = await axios.get('/api/help/popular-questions');
-        if (response.data.success) {
-          setPopularQuestions(response.data.questions);
-        } else {
-          setError(prev => ({ ...prev, questions: 'Failed to fetch popular questions' }));
-        }
+        setPopularQuestions(response.data.questions);
       } catch (err) {
-        setError(prev => ({ ...prev, questions: err.message }));
+        console.error("Error fetching popular questions:", err);
+        setError(prev => ({ ...prev, questions: err.message || 'Failed to fetch popular questions' }));
       } finally {
         setLoading(prev => ({ ...prev, questions: false }));
       }
@@ -77,8 +87,8 @@ const Help = () => {
   };
 
   // Handle category click
-  const handleCategoryClick = (categoryId) => {
-    navigate(`/help/category/${categoryId}`);
+  const handleCategoryClick = (categorySlug) => {
+    navigate(`/help/category/${categorySlug}`);
   };
 
   // Handle question click
@@ -315,15 +325,25 @@ const Help = () => {
         <Card className="dashboard-card search-card floating-card">
           <CardContent className="p-6">
             <h2 className="text-2xl font-bold text-center mb-6 text-white">How can we help you?</h2>
-            <div className="relative">
+            <form onSubmit={handleSearchSubmit} className="relative">
               <input
                 type="text"
                 placeholder="Search for answers..."
                 className="w-full p-3 pl-10 bg-purple-900/30 text-white border border-purple-500/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder-purple-300"
+                value={searchQuery}
+                onChange={handleSearchChange}
+                minLength={3}
               />
               <Search className="w-5 h-5 text-purple-300 absolute left-3 top-1/2 transform -translate-y-1/2" />
+              <button 
+                type="submit"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-indigo-600 text-white px-3 py-1 rounded-md text-sm hover:bg-indigo-500 transition-colors duration-200"
+                disabled={searchQuery.trim().length < 3}
+              >
+                Search
+              </button>
               <div className="search-glow"></div>
-            </div>
+            </form>
           </CardContent>
         </Card>
 
@@ -336,20 +356,38 @@ const Help = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {faqCategories.map((category, index) => (
-                  <button key={index} className="w-full flex items-center justify-between p-3 hover:bg-purple-800/20 rounded-lg transition-all duration-300">
-                    <div className="flex items-center">
-                      <div className="icon-container">
-                        <category.icon className="w-5 h-5 text-indigo-400" />
-                        <div className="icon-glow"></div>
+              {loading.categories ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-400"></div>
+                </div>
+              ) : error.categories ? (
+                <div className="text-center py-8 text-red-400">
+                  <p>Unable to load categories. Please try again later.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {faqCategories.length > 0 ? faqCategories.map((category) => (
+                    <button 
+                      key={category.id || category.slug} 
+                      className="w-full flex items-center justify-between p-3 hover:bg-purple-800/20 rounded-lg transition-all duration-300"
+                      onClick={() => handleCategoryClick(category.slug)}
+                    >
+                      <div className="flex items-center">
+                        <div className="icon-container">
+                          {React.createElement(category.icon, { className: "w-5 h-5 text-indigo-400" })}
+                          <div className="icon-glow"></div>
+                        </div>
+                        <span className="ml-3 text-purple-100">{category.title}</span>
                       </div>
-                      <span className="ml-3 text-purple-100">{category.title}</span>
+                      <span className="text-sm text-purple-300">{category.count} articles</span>
+                    </button>
+                  )) : (
+                    <div className="text-center py-4 text-purple-300">
+                      <p>No categories available</p>
                     </div>
-                    <span className="text-sm text-purple-300">{category.count} articles</span>
-                  </button>
-                ))}
-              </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
           
@@ -361,18 +399,39 @@ const Help = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {popularQuestions.map((question, index) => (
-                  <button key={index} className="w-full text-left flex items-center p-3 hover:bg-purple-800/20 rounded-lg transition-all duration-300">
-                    <div className="activity-indicator activity-question mr-3"></div>
-                    <span className="text-sm text-purple-100">{question}</span>
+              {loading.questions ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-400"></div>
+                </div>
+              ) : error.questions ? (
+                <div className="text-center py-8 text-red-400">
+                  <p>Unable to load popular questions. Please try again later.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {popularQuestions.length > 0 ? popularQuestions.map((question) => (
+                    <button 
+                      key={question.id} 
+                      className="w-full text-left flex items-center p-3 hover:bg-purple-800/20 rounded-lg transition-all duration-300"
+                      onClick={() => handleQuestionClick(question.id)}
+                    >
+                      <div className="activity-indicator activity-question mr-3"></div>
+                      <span className="text-sm text-purple-100">{question.title}</span>
+                    </button>
+                  )) : (
+                    <div className="text-center py-4 text-purple-300">
+                      <p>No popular questions available</p>
+                    </div>
+                  )}
+                  <button 
+                    className="w-full flex items-center justify-center p-3 text-indigo-400 hover:bg-purple-800/20 rounded-lg mt-4 transition-all duration-300"
+                    onClick={() => navigate('/help/all-faqs')}
+                  >
+                    <span>View all FAQs</span>
+                    <ExternalLink className="w-4 h-4 ml-1" />
                   </button>
-                ))}
-                <button className="w-full flex items-center justify-center p-3 text-indigo-400 hover:bg-purple-800/20 rounded-lg mt-4 transition-all duration-300">
-                  <span>View all FAQs</span>
-                  <ExternalLink className="w-4 h-4 ml-1" />
-                </button>
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
