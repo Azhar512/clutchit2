@@ -35,7 +35,8 @@ def create_app():
     from backend.app.Routes.bankroll_routes import bankroll_bp
     from backend.app.Routes.auth_routes import auth_bp
     from backend.app.Routes.marketplace_routes import marketplace_bp
-
+    from backend.app.Routes.help import help_bp
+  
     from backend.app.Routes.profile_routes import profile_bp
     from backend.app.Routes.subscription_routes import subscription_bp
     from backend.app.Routes.bets import bets_bp
@@ -48,6 +49,7 @@ def create_app():
     app.register_blueprint(subscription_bp, url_prefix='/api/subscription')
     app.register_blueprint(bets_bp, url_prefix='/api/bets')
     app.register_blueprint(marketplace_bp)
+    app.register_blueprint(help_bp)
 
     register_error_handlers(app)
 
