@@ -36,6 +36,7 @@ def create_app():
     from backend.app.Routes.auth_routes import auth_bp
     from backend.app.Routes.profile_routes import profile_bp
     from backend.app.Routes.subscription_routes import subscription_bp
+    from backend.app.Routes.bets import bets_bp
 
     app.register_blueprint(upload_bp, url_prefix='/api/upload')
     app.register_blueprint(leaderboard_routes)
@@ -43,6 +44,7 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(profile_bp, url_prefix='/api/profile')
     app.register_blueprint(subscription_bp, url_prefix='/api/subscription')
+    app.register_blueprint(bets_bp, url_prefix='/api/bets')
 
     register_error_handlers(app)
 

@@ -1,18 +1,22 @@
 from flask import Blueprint, request, jsonify, g
 from backend.app.services.ocr_service import OCRService
+from backend.app.services.bet_service import BetService
 from backend.app.models.user import User
 from backend.app.models.bet import Bet
+from backend.app.utils.auth_middleware import auth_required
 import base64
 
 bp = Blueprint('bets', __name__, url_prefix='/api/bets')
 ocr_service = OCRService()
+bet_service = BetService()
 
-# Middleware to check upload limits based on subscription
-def check_upload_limit():
-    user_id = request.headers.get('User-ID')
-    if not user_id:
-        return jsonify({'error': 'Authentication required'}), 401
-        
+@bp.route('/upload', methods=['POST'])
+@auth_required  # Using auth middleware for authentication
+def upload_bet_slip():
+    """API endpoint to handle bet slip uploads"""
+    user_id = g.user_id  # Get user ID from auth middleware
+    
+    # Get user information to check subscription limits
     user = User.get_by_id(user_id)
     if not user:
         return jsonify({'error': 'User not found'}), 404
@@ -22,20 +26,6 @@ def check_upload_limit():
         return jsonify({'error': 'Daily upload limit reached for free tier'}), 403
     elif user.subscription_tier == 'basic' and user.uploads_today >= 10:
         return jsonify({'error': 'Daily upload limit reached for basic tier'}), 403
-    
-    # Store user in request context
-    g.user = user
-    return None
-
-@bp.route('/upload', methods=['POST'])
-def upload_bet():
-    # Check upload limits
-    limit_error = check_upload_limit()
-    if limit_error:
-        return limit_error
-    
-    # Extract user from middleware
-    user = g.user
     
     # Check if image or text upload
     if 'image' in request.files:
@@ -49,7 +39,7 @@ def upload_bet():
         
         # Save bet to database
         bet = Bet.create(
-            user_id=user.id,
+            user_id=user_id,
             bet_type=ocr_result.get('extracted_bet_info', {}).get('bet_type', 'unknown'),
             teams=_extract_teams_from_ocr(ocr_result),
             odds=_extract_odds_from_ocr(ocr_result),
@@ -58,7 +48,6 @@ def upload_bet():
             image_url=ocr_result.get('image_url')
         )
         
-        # Increment user's upload count
         user.increment_uploads()
         
         return jsonify({
@@ -72,7 +61,7 @@ def upload_bet():
         
         # Create bet entry
         bet = Bet.create(
-            user_id=user.id,
+            user_id=user_id,
             bet_type=request.json.get('bet_type', 'unknown'),
             teams=request.json.get('teams', []),
             odds=request.json.get('odds'),
@@ -89,7 +78,8 @@ def upload_bet():
         }), 201
         
     else:
-        return jsonify({'error': 'No image or bet text provided'}), 400
+        
+        return bet_service.upload_bet_slip(user_id)
 
 def _extract_teams_from_ocr(ocr_result):
     """Extract team information from OCR result"""
