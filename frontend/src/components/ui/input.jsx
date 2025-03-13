@@ -1,5 +1,5 @@
 import React from "react";
-import { cn } from "../../utils/cn"; // Adjust this path if needed
+import { cn } from "../../utils/cn"; 
 
 const Input = React.forwardRef(({ 
   className,
@@ -20,5 +20,6 @@ const Input = React.forwardRef(({
 });
 
 Input.displayName = "Input";
+export { Input };
 
 export default Input;
