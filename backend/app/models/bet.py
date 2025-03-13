@@ -1,86 +1,196 @@
-from firebase_admin import firestore
-import uuid
+# models/bet.py
 from datetime import datetime
+from sqlalchemy import Column, Integer, Float, String, DateTime, ForeignKey, Boolean
+from sqlalchemy.orm import relationship
+from backend.app.db import db
 
-# -------------------- #
-#   Bet Model Class    #
-# -------------------- #
-class Bet:
-    def __init__(self, bet_id, bet_data, predictions, status='pending'):
-        self.id = bet_id
-        self.bet_data = bet_data
-        self.predictions = predictions
-        self.created_at = datetime.utcnow()
-        self.status = status
-        self.integrity_score = self.calculate_integrity_score()
+class Bet(db.Model):
+    __tablename__ = 'bets'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    amount = Column(Float, nullable=False)
+    odds = Column(Float, nullable=False)
+    profit = Column(Float, default=0.0)
+    status = Column(String(20), default='pending')  # pending, win, loss
+    event_name = Column(String(255))
+    event_date = Column(DateTime)
+    bet_type = Column(String(50))  # moneyline, spread, over/under, parlay
+    selection = Column(String(255))  # Team or selection name
+    created_at = Column(DateTime, default=datetime.utcnow)
+    settled_at = Column(DateTime)
+    prediction_id = Column(Integer, ForeignKey('predictions.id'), nullable=True)
+    is_clutch_pick = Column(Boolean, default=False)
+    
+    # Relationships
+    user = relationship("User", back_populates="bets")
+    prediction = relationship("Prediction", back_populates="bets")
+    
+    def __repr__(self):
+        return f"<Bet(id={self.id}, user_id={self.user_id}, amount=${self.amount}, status={self.status})>"
 
-    def calculate_integrity_score(self):
-        """
-        Calculate an integrity score for the bet based on data completeness.
-        """
-        score = 0
-        max_score = 100
 
-        if self.bet_data.get('sport') and self.bet_data['sport'] != 'Unknown':
-            score += 20
+# models/user_model.py
+from datetime import datetime
+from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean, Table, ForeignKey
+from sqlalchemy.orm import relationship
+from werkzeug.security import generate_password_hash, check_password_hash
+from backend.app.db import db
 
-        if self.bet_data.get('teams') and len(self.bet_data['teams']) > 0:
-            score += 20
+# User followers association table (many-to-many relationship)
+followers = Table(
+    'followers',
+    db.Model.metadata,
+    Column('follower_id', Integer, ForeignKey('users.id'), primary_key=True),
+    Column('followed_id', Integer, ForeignKey('users.id'), primary_key=True)
+)
 
-        if self.bet_data.get('odds') and len(self.bet_data['odds']) > 0:
-            score += 20
+class User(db.Model):
+    __tablename__ = 'users'
+    
+    id = Column(Integer, primary_key=True)
+    username = Column(String(80), unique=True, nullable=False)
+    email = Column(String(120), unique=True, nullable=False)
+    password_hash = Column(String(128))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_login = Column(DateTime)
+    is_active = Column(Boolean, default=True)
+    balance = Column(Float, default=0.0)
+    profile_picture = Column(String(255))
+    bio = Column(String(500))
+    
+    # Subscription info
+    subscription_level = Column(String(50), default='free')
+    subscription_expires = Column(DateTime)
+    
+    # Betting performance metrics
+    total_bets = Column(Integer, default=0)
+    winning_bets = Column(Integer, default=0)
+    total_profit = Column(Float, default=0.0)
+    
+    # Social features
+    followed = relationship(
+        'User', 
+        secondary=followers,
+        primaryjoin=(followers.c.follower_id == id),
+        secondaryjoin=(followers.c.followed_id == id),
+        backref=db.backref('followers', lazy='dynamic'),
+        lazy='dynamic'
+    )
+    
+    # Relationships
+    bets = relationship("Bet", back_populates="user")
+    subscriptions = relationship("Subscription", back_populates="user")
+    leaderboard_entries = relationship("LeaderboardEntry", back_populates="user")
+    
+    @property
+    def followers_count(self):
+        return self.followers.count()
+    
+    @property
+    def win_rate(self):
+        if self.total_bets > 0:
+            return (self.winning_bets / self.total_bets) * 100
+        return 0
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+        
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+    
+    def follow(self, user):
+        if not self.is_following(user):
+            self.followed.append(user)
+            
+    def unfollow(self, user):
+        if self.is_following(user):
+            self.followed.remove(user)
+            
+    def is_following(self, user):
+        return self.followed.filter(followers.c.followed_id == user.id).count() > 0
+    
+    def __repr__(self):
+        return f"<User(id={self.id}, username='{self.username}')>"
 
-        if self.bet_data.get('bet_type') and self.bet_data['bet_type'] != 'Unknown':
-            score += 20
 
-        if self.bet_data.get('amount'):
-            score += 20
+# models/subscription.py
+from datetime import datetime
+from sqlalchemy import Column, Integer, String, DateTime, Float, ForeignKey
+from sqlalchemy.orm import relationship
+from backend.app.db import db
 
-        if self.bet_data.get('confidence_score', 0) > 80:
-            score = min(max_score, score + 10)
+class Subscription(db.Model):
+    __tablename__ = 'subscriptions'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    plan_name = Column(String(50), nullable=False)  # free, basic, premium, elite
+    amount = Column(Float, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    start_date = Column(DateTime, nullable=False)
+    end_date = Column(DateTime, nullable=False)
+    is_active = Column(String(10), default='active')  # active, cancelled, expired
+    payment_method = Column(String(50))
+    
+    # Relationships
+    user = relationship("User", back_populates="subscriptions")
+    
+    def __repr__(self):
+        return f"<Subscription(id={self.id}, user_id={self.user_id}, plan='{self.plan_name}')>"
 
-        return score
 
-# --------------------- #
-#   BetLeg Model Class  #
-# --------------------- #
-class BetLeg:
-    def __init__(self, leg_id, details):
-        self.leg_id = leg_id
-        self.details = details
+# models/leaderboard_model.py
+from datetime import datetime
+from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey, String
+from sqlalchemy.orm import relationship
+from backend.app.db import db
 
-# ----------------------- #
-#   Bet Status Enum-Like  #
-# ----------------------- #
-class BetStatus:
-    PENDING = 'pending'
-    IN_PROGRESS = 'in_progress'
-    WON = 'won'
-    LOST = 'lost'
+class LeaderboardEntry(db.Model):
+    __tablename__ = 'leaderboard_entries'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    time_period = Column(String(20), nullable=False)  # daily, weekly, monthly, all-time
+    rank = Column(Integer)
+    profit = Column(Float)
+    win_rate = Column(Float)
+    total_bets = Column(Integer)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = relationship("User", back_populates="leaderboard_entries")
+    
+    def __repr__(self):
+        return f"<LeaderboardEntry(id={self.id}, user_id={self.user_id}, rank={self.rank}, period='{self.time_period}')>"
 
-# --------------------- #
-#   Create Bet Function #
-# --------------------- #
-def create_bet(bet_data, predictions):
-    db = firestore.client()
 
-    # Generate a unique ID for the bet
-    bet_id = str(uuid.uuid4())
+# models/prediction.py
+from datetime import datetime
+from sqlalchemy import Column, Integer, String, DateTime, Float, ForeignKey, Boolean
+from sqlalchemy.orm import relationship
+from backend.app.db import db
 
-    # Create a Bet instance
-    bet = Bet(bet_id, bet_data, predictions)
-
-    # Prepare document
-    bet_doc = {
-        'id': bet.id,
-        'bet_data': bet.bet_data,
-        'predictions': bet.predictions,
-        'created_at': bet.created_at,
-        'status': bet.status,
-        'integrity_score': bet.integrity_score
-    }
-
-    # Add to Firestore
-    db.collection('bets').document(bet_id).set(bet_doc)
-
-    return bet_id
+class Prediction(db.Model):
+    __tablename__ = 'predictions'
+    
+    id = Column(Integer, primary_key=True)
+    event_name = Column(String(255), nullable=False)
+    event_date = Column(DateTime, nullable=False)
+    sport = Column(String(50), nullable=False)
+    market_type = Column(String(50))  # moneyline, spread, total, etc.
+    selection = Column(String(255))
+    confidence = Column(Float)
+    odds = Column(Float)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    status = Column(String(20), default='active')  # active, settled, cancelled
+    outcome = Column(String(20))  # win, loss
+    is_featured = Column(Boolean, default=False)
+    is_clutch_pick = Column(Boolean, default=False)
+    
+    # Relationships
+    bets = relationship("Bet", back_populates="prediction")
+    
+    def __repr__(self):
+        return f"<Prediction(id={self.id}, event='{self.event_name}', selection='{self.selection}')>"
