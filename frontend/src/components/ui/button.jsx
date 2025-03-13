@@ -51,4 +51,4 @@ const Button = React.forwardRef(({
 Button.displayName = "Button";
 export { button };
 
-export default Button;
+export default button;
