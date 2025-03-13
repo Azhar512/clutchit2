@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.services.marketplace_service import MarketplaceService
-from app import db
+from backend.app.services.marketplace_service import MarketplaceService
+from backend.app import db
 
 # Create blueprint
 marketplace_bp = Blueprint('marketplace', __name__)
