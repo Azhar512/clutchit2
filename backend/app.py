@@ -37,7 +37,7 @@ def create_app():
     from backend.app.Routes.marketplace_routes import marketplace_bp
     from backend.app.Routes.help import help_bp
     from backend.app.Routes.dashboard_routes import dashboard_bp
-
+    from backend.app.Routes.profile_routes import profile_bp
   
     from backend.app.Routes.profile_routes import profile_bp
     from backend.app.Routes.subscription_routes import subscription_bp
