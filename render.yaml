@@ -9,5 +9,4 @@ services:
       npm install && 
       npm run build && 
       cd ..
-    startCommand: gunicorn wsgi:application
-    
+    startCommand: gunicorn wsgi:application 
