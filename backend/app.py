@@ -13,9 +13,7 @@ jwt = JWTManager()
 
 def create_app():
     """Create and configure the Flask application."""
-    # Define static folder path
-    project_root = os.path.dirname(os.path.abspath(__file__))
-    static_folder = os.path.join(project_root, 'frontend', 'build')
+    static_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), 'frontend', 'build'))
     
     app = Flask(__name__, static_folder=static_folder, static_url_path='')
     app.config.from_object(Config)
@@ -40,6 +38,7 @@ def create_app():
     from backend.app.Routes.help import help_bp
     from backend.app.Routes.dashboard_routes import dashboard_bp
     from backend.app.Routes.profile_routes import profile_bp
+  
     from backend.app.Routes.profile_routes import profile_bp
     from backend.app.Routes.subscription_routes import subscription_bp
     from backend.app.Routes.bets import bets_bp
@@ -56,78 +55,24 @@ def create_app():
     app.register_blueprint(dashboard_bp)
 
     register_error_handlers(app)
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
 
     @app.route('/api/health')
     def api_health():
         return {"status": "healthy", "message": "Clutch App API is running"}
-    
-    @app.route('/debug-paths')
-    def debug_paths():
-        """Debug endpoint to check paths and files"""
-        project_root = os.path.dirname(os.path.abspath(__file__))
-        frontend_build = os.path.join(project_root, 'frontend', 'build')
-        
-        # Check various possible locations
-        paths_to_check = [
-            app.static_folder,
-            frontend_build,
-            os.path.join(project_root, 'build'),
-            os.path.join(project_root, 'frontend', 'dist'),
-            os.path.join(os.path.dirname(project_root), 'frontend', 'build')
-        ]
-        
-        results = {}
-        for p in paths_to_check:
-            try:
-                results[p] = {
-                    "exists": os.path.exists(p),
-                    "files": os.listdir(p) if os.path.exists(p) else []
-                }
-            except Exception as e:
-                results[p] = {"error": str(e)}
-        
-        return {
-            "project_root": project_root,
-            "static_folder": app.static_folder,
-            "paths": results
-        }
 
-    # Serve static files explicitly
-    @app.route('/static/<path:filename>')
-    def serve_static(filename):
-        return send_from_directory(os.path.join(app.static_folder, 'static'), filename)
-    
-    # Serve other static assets
-    @app.route('/assets/<path:filename>')
-    def serve_assets(filename):
-        return send_from_directory(os.path.join(app.static_folder, 'assets'), filename)
-    
-    # Serve favicon
-    @app.route('/favicon.ico')
-    def favicon():
-        return send_from_directory(app.static_folder, 'favicon.ico')
-
-    # Catch-all route to serve React app
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
     def serve(path):
-        app.logger.info(f"Requested path: {path}")
-        
-        # If path is for API, let Flask handle it
-        if path.startswith('api'):
-            app.logger.info("API route detected, handling with Flask")
+        # If the path starts with api, let Flask handle it
+        if path.startswith('api/'):
             return app.full_dispatch_request()
         
-        # Check if static file exists
-        static_file_path = os.path.join(app.static_folder, path)
-        app.logger.info(f"Looking for static file at: {static_file_path}")
-        
-        if path and os.path.exists(static_file_path):
-            app.logger.info(f"File exists, serving: {path}")
+        # Check if the file exists in the static folder
+        if path and os.path.exists(os.path.join(app.static_folder, path)):
             return send_from_directory(app.static_folder, path)
         
-        # Serve index.html for all other paths
-        app.logger.info(f"Serving index.html for path: {path}")
+        # If the file doesn't exist or no path is specified, serve index.html
         return send_from_directory(app.static_folder, 'index.html')
 
     with app.app_context():
