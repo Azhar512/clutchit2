@@ -29,7 +29,7 @@ def create_app():
     jwt.init_app(app)
     CORS(app)  
 
-    # Register all your API blueprints
+    # Register all blueprints
     from backend.app.api.upload import upload_bp
     from backend.app.utils.error_handlers import register_error_handlers
     from backend.app.Routes.leaderboard_routes import leaderboard_routes
@@ -42,8 +42,7 @@ def create_app():
     from backend.app.Routes.subscription_routes import subscription_bp
     from backend.app.Routes.bets import bets_bp
 
-    # Register all blueprints
-    app.register_blueprint(upload_bp, url_prefix='/upload')
+    app.register_blueprint(upload_bp, url_prefix='/api/upload')
     app.register_blueprint(leaderboard_routes)
     app.register_blueprint(bankroll_bp, url_prefix='/api/bankroll')
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
@@ -60,15 +59,13 @@ def create_app():
     def api_health():
         return {"status": "healthy", "message": "Clutch App API is running"}
 
-    # This catch-all route must be AFTER all other routes
+    # Serve static files from the React app
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
-    def catch_all(path):
-        # First try to serve as a static file
-        try:
+    def serve(path):
+        if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
             return send_from_directory(app.static_folder, path)
-        except:
-            # If not a static file, serve index.html
+        else:
             return send_from_directory(app.static_folder, 'index.html')
 
     with app.app_context():
