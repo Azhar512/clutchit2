@@ -29,6 +29,7 @@ def create_app():
     jwt.init_app(app)
     CORS(app)  
 
+    # Register all your API blueprints
     from backend.app.api.upload import upload_bp
     from backend.app.utils.error_handlers import register_error_handlers
     from backend.app.Routes.leaderboard_routes import leaderboard_routes
@@ -41,7 +42,8 @@ def create_app():
     from backend.app.Routes.subscription_routes import subscription_bp
     from backend.app.Routes.bets import bets_bp
 
-    app.register_blueprint(upload_bp, url_prefix='/api/upload')
+    # Register all blueprints
+    app.register_blueprint(upload_bp, url_prefix='/upload')
     app.register_blueprint(leaderboard_routes)
     app.register_blueprint(bankroll_bp, url_prefix='/api/bankroll')
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
@@ -58,24 +60,16 @@ def create_app():
     def api_health():
         return {"status": "healthy", "message": "Clutch App API is running"}
 
-    # Serve API routes first
-    @app.route('/api/<path:path>')
-    def api_routes(path):
-        # Let Flask handle all API routes
-        return app.full_dispatch_request()
-
-    # Serve static files if they exist
-    @app.route('/<path:path>')
-    def static_files(path):
-        if os.path.exists(os.path.join(app.static_folder, path)):
-            return send_from_directory(app.static_folder, path)
-        # If static file doesn't exist, fall through to the catch-all
-
-    # Catch-all route to serve index.html for all other requests
+    # This catch-all route must be AFTER all other routes
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
-    def serve(path):
-        return send_from_directory(app.static_folder, 'index.html')
+    def catch_all(path):
+        # First try to serve as a static file
+        try:
+            return send_from_directory(app.static_folder, path)
+        except:
+            # If not a static file, serve index.html
+            return send_from_directory(app.static_folder, 'index.html')
 
     with app.app_context():
         db.create_all()
