@@ -1,22 +1,16 @@
 services:
   - type: web
-    name: clutch-api
+    name: clutch-it
     env: python
-    buildCommand: pip install --upgrade pip && pip install --default-timeout=100 -r requirements.txt
+    buildCommand: >
+      pip install --upgrade pip && 
+      pip install --default-timeout=100 -r requirements.txt && 
+      cd frontend && 
+      npm install && 
+      npm run build && 
+      cd ..
     startCommand: gunicorn wsgi:application
-    envVars:
-      - key: DATABASE_URI
-        sync: false
-      - key: JWT_SECRET_KEY
-        generateValue: true
-
-  - type: static
-    name: clutch-frontend
-    buildCommand: cd frontend && npm install && npm run build
-    publishDir: frontend/build
-    envVars:
-      - key: REACT_APP_API_URL
-        fromService:
-          name: clutch-api
-          type: web
-          property: url
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

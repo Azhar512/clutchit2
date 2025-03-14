@@ -55,7 +55,6 @@ def create_app():
     app.register_blueprint(dashboard_bp)
 
     register_error_handlers(app)
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
 
     @app.route('/api/health')
     def api_health():
