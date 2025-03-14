@@ -13,7 +13,7 @@ jwt = JWTManager()
 
 def create_app():
     """Create and configure the Flask application."""
-    static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'frontend', 'build')
+    static_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), 'frontend', 'build'))
     
     app = Flask(__name__, static_folder=static_folder, static_url_path='')
     app.config.from_object(Config)
