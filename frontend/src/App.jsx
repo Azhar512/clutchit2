@@ -12,7 +12,7 @@ import { ToastProvider } from './components/ui/use-toast';
 function App() {
   return (
     <ToastProvider>
-      <Router basename='/'>
+      <Router>
         <Layout>
           <Routes>
             <Route path="/" element={<Dashboard />} />
