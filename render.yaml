@@ -10,7 +10,4 @@ services:
       npm run build && 
       cd ..
     startCommand: gunicorn wsgi:application
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+    

@@ -38,8 +38,6 @@ def create_app():
     from backend.app.Routes.help import help_bp
     from backend.app.Routes.dashboard_routes import dashboard_bp
     from backend.app.Routes.profile_routes import profile_bp
-  
-    from backend.app.Routes.profile_routes import profile_bp
     from backend.app.Routes.subscription_routes import subscription_bp
     from backend.app.Routes.bets import bets_bp
 
@@ -60,18 +58,23 @@ def create_app():
     def api_health():
         return {"status": "healthy", "message": "Clutch App API is running"}
 
+    # Serve API routes first
+    @app.route('/api/<path:path>')
+    def api_routes(path):
+        # Let Flask handle all API routes
+        return app.full_dispatch_request()
+
+    # Serve static files if they exist
+    @app.route('/<path:path>')
+    def static_files(path):
+        if os.path.exists(os.path.join(app.static_folder, path)):
+            return send_from_directory(app.static_folder, path)
+        # If static file doesn't exist, fall through to the catch-all
+
+    # Catch-all route to serve index.html for all other requests
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
     def serve(path):
-        # If the path starts with api, let Flask handle it
-        if path.startswith('api/'):
-            return app.full_dispatch_request()
-        
-        # Check if the file exists in the static folder
-        if path and os.path.exists(os.path.join(app.static_folder, path)):
-            return send_from_directory(app.static_folder, path)
-        
-        # If the file doesn't exist or no path is specified, serve index.html
         return send_from_directory(app.static_folder, 'index.html')
 
     with app.app_context():
