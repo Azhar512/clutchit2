@@ -11,33 +11,28 @@ ocr_service = OCRService()
 bet_service = BetService()
 
 @bp.route('/upload', methods=['POST'])
-@auth_required  # Using auth middleware for authentication
+@auth_required  
 def upload_bet_slip():
     """API endpoint to handle bet slip uploads"""
-    user_id = g.user_id  # Get user ID from auth middleware
+    user_id = g.user_id  
     
-    # Get user information to check subscription limits
     user = User.get_by_id(user_id)
     if not user:
         return jsonify({'error': 'User not found'}), 404
     
-    # Check upload limits based on subscription tier
     if user.subscription_tier == 'free' and user.uploads_today >= 5:
         return jsonify({'error': 'Daily upload limit reached for free tier'}), 403
     elif user.subscription_tier == 'basic' and user.uploads_today >= 10:
         return jsonify({'error': 'Daily upload limit reached for basic tier'}), 403
     
-    # Check if image or text upload
     if 'image' in request.files:
         image_file = request.files['image']
         image_data = image_file.read()
         
-        # Process image with OCR
         ocr_result = ocr_service.process_image(image_data)
         if not ocr_result:
             return jsonify({'error': 'Could not extract text from image'}), 400
         
-        # Save bet to database
         bet = Bet.create(
             user_id=user_id,
             bet_type=ocr_result.get('extracted_bet_info', {}).get('bet_type', 'unknown'),
@@ -59,7 +54,6 @@ def upload_bet_slip():
     elif 'bet_text' in request.json:
         bet_text = request.json['bet_text']
         
-        # Create bet entry
         bet = Bet.create(
             user_id=user_id,
             bet_type=request.json.get('bet_type', 'unknown'),
@@ -69,7 +63,6 @@ def upload_bet_slip():
             original_text=bet_text
         )
         
-        # Increment user's upload count
         user.increment_uploads()
         
         return jsonify({

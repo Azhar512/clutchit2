@@ -42,7 +42,6 @@ def get_recent_activity():
     
     limit = request.args.get('limit', default=15, type=int)
     
-    # Get activity from service
     activities = DashboardService.get_recent_activity(current_user_id, limit)
     
     activity_data = {

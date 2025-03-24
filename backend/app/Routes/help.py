@@ -16,7 +16,6 @@ def get_faq_categories():
     Get all FAQ categories with article counts
     """
     try:
-        # Query for all categories and count the FAQs in each
         categories = []
         for category in FAQCategory.query.all():
             count = FAQ.query.filter_by(category_id=category.id).count()
@@ -32,7 +31,6 @@ def get_faq_categories():
             'categories': categories
         })
     except Exception as e:
-        # Log the error
         print(f"Error fetching FAQ categories: {str(e)}")
         return jsonify({
             'success': False,
@@ -45,7 +43,6 @@ def get_popular_questions():
     Get popular/featured FAQ questions
     """
     try:
-        # Query for FAQs marked as popular/featured, limited to 5
         questions = FAQ.query.filter_by(is_popular=True).limit(5).all()
         
         questions_list = [{
@@ -59,7 +56,6 @@ def get_popular_questions():
             'questions': questions_list
         })
     except Exception as e:
-        # Log the error
         print(f"Error fetching popular questions: {str(e)}")
         return jsonify({
             'success': False,
@@ -80,7 +76,6 @@ def search_faqs():
         }), 400
     
     try:
-        # Simple search implementation - can be improved with full-text search
         search_results = FAQ.query.filter(
             (FAQ.question.ilike(f'%{query}%')) | 
             (FAQ.answer.ilike(f'%{query}%'))
@@ -100,7 +95,6 @@ def search_faqs():
             'count': len(results)
         })
     except Exception as e:
-        # Log the error
         print(f"Error searching FAQs: {str(e)}")
         return jsonify({
             'success': False,
@@ -135,7 +129,6 @@ def get_faq(faq_id):
             }
         })
     except Exception as e:
-        # Log the error
         print(f"Error fetching FAQ: {str(e)}")
         return jsonify({
             'success': False,
@@ -176,7 +169,6 @@ def get_category_faqs(category_slug):
             'count': len(faqs_list)
         })
     except Exception as e:
-        # Log the error
         print(f"Error fetching category FAQs: {str(e)}")
         return jsonify({
             'success': False,

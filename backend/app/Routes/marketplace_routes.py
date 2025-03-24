@@ -3,7 +3,6 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from  app.services.marketplace_service import MarketplaceService
 from  app import db
 
-# Create blueprint
 marketplace_bp = Blueprint('marketplace', __name__)
 marketplace_service = MarketplaceService(db)
 

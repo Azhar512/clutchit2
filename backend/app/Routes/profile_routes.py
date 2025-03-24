@@ -3,7 +3,6 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
 import re
 
-# Import models
 from  app.models.user import User
 from  app.models.betting_stats import BettingStats
 from  app.models.subscription import Subscription
@@ -17,12 +16,10 @@ def get_profile():
     """Get user profile information"""
     user_id = get_jwt_identity()
     
-    # Fetch user data
     user = User.query.get(user_id)
     if not user:
         return jsonify({"error": "User not found"}), 404
     
-    # Fetch additional user statistics
     stats = BettingStats.query.filter_by(user_id=user_id).first()
     if not stats:
         stats = BettingStats(user_id=user_id)
@@ -31,10 +28,8 @@ def get_profile():
         
     subscription = Subscription.query.filter_by(user_id=user_id).first()
     
-    # Format join date
     join_date = user.created_at.strftime("%B %Y") if user.created_at else "N/A"
     
-    # Construct response
     profile_data = {
         "name": f"{user.first_name} {user.last_name}" if hasattr(user, 'first_name') else user.name,
         "username": user.username if hasattr(user, 'username') else None,
@@ -63,7 +58,6 @@ def update_profile():
     if not user:
         return jsonify({"error": "User not found"}), 404
     
-    # Update user fields
     if 'firstName' in data:
         user.first_name = data['firstName']
     if 'lastName' in data:
@@ -72,11 +66,9 @@ def update_profile():
         user.name = data['name']
     
     if 'email' in data:
-        # Validate email format
         if not re.match(r"[^@]+@[^@]+\.[^@]+", data['email']):
             return jsonify({"error": "Invalid email format"}), 400
         
-        # Check if email already exists for a different user
         existing_user = User.query.filter_by(email=data['email']).first()
         if existing_user and existing_user.id != user_id:
             return jsonify({"error": "Email already registered"}), 409
@@ -86,14 +78,12 @@ def update_profile():
     if 'profile_picture' in data:
         user.profile_picture = data['profile_picture']
     
-    # Update password if provided
     if 'current_password' in data and 'new_password' in data:
         if not user.check_password(data['current_password']):
             return jsonify({"error": "Current password is incorrect"}), 401
         
         user.set_password(data['new_password'])
     
-    # Save changes
     try:
         if hasattr(user, 'save'):
             user.save()

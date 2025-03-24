@@ -6,13 +6,10 @@ def predict_outcome(bet_data, reddit_data=None):
     """
     Generate predictions for a bet based on the AI model
     """
-    # Load the prediction model
     model = load_model()
     
-    # Prepare features from bet_data
     features = prepare_features(bet_data, reddit_data)
     
-    # Get model prediction
     prediction = predict(model, features)
     
     return {
@@ -28,19 +25,16 @@ def prepare_features(bet_data, reddit_data=None):
     """
     features = {}
     
-    # Extract basic bet features
     features['odds'] = bet_data.get('odds')
     features['bet_type'] = bet_data.get('bet_type')
     features['sport'] = bet_data.get('sport')
     
-    # Add sentiment analysis if reddit_data is available
     if reddit_data:
         sentiment_scores = analyze_sentiment(reddit_data)
         features['sentiment_score'] = sentiment_scores['compound']
         features['positive_sentiment'] = sentiment_scores['pos']
         features['negative_sentiment'] = sentiment_scores['neg']
     
-    # Additional feature engineering would go here
     
     return features
 

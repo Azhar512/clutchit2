@@ -9,7 +9,6 @@ import stripe
 
 subscription_bp = Blueprint('subscription', __name__)
 
-# Set up Stripe API key
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 @subscription_bp.route('/', methods=['GET'])
@@ -34,22 +33,17 @@ def create_subscription():
     
     data = request.get_json()
     
-    # Validate subscription type
     if 'subscription_type' not in data or data['subscription_type'] not in [
         SubscriptionType.BASIC, SubscriptionType.PREMIUM, SubscriptionType.UNLIMITED
     ]:
         return jsonify({"error": "Invalid subscription type"}), 400
     
-    # Check if user already has a subscription
     existing_subscription = Subscription.query.filter_by(user_id=current_user_id, is_active=True).first()
     if existing_subscription:
         return jsonify({"error": "User already has an active subscription"}), 409
     
-    # For now, just create a trial subscription without Stripe integration
-    # This will be replaced with actual Stripe subscription creation in production
     subscription_type = data['subscription_type']
     
-    # Set trial end date (3 days from now)
     end_date = datetime.utcnow() + timedelta(days=3)
     
     new_subscription = Subscription(
@@ -76,7 +70,6 @@ def cancel_subscription():
     if not subscription:
         return jsonify({"error": "No active subscription found"}), 404
     
-    # In production, you would handle Stripe cancellation here
     
     subscription.is_active = False
     db.session.commit()
@@ -96,19 +89,16 @@ def upgrade_subscription():
     
     data = request.get_json()
     
-    # Validate subscription type
     if 'subscription_type' not in data or data['subscription_type'] not in [
         SubscriptionType.BASIC, SubscriptionType.PREMIUM, SubscriptionType.UNLIMITED
     ]:
         return jsonify({"error": "Invalid subscription type"}), 400
     
-    # Check if user already has a subscription
     subscription = Subscription.query.filter_by(user_id=current_user_id, is_active=True).first()
     
     if not subscription:
         return jsonify({"error": "No active subscription found"}), 404
     
-    # In production, you would handle Stripe subscription update here
     
     subscription.subscription_type = data['subscription_type']
     db.session.commit()

@@ -13,22 +13,18 @@ auth_bp = Blueprint('auth', __name__)
 def register():
     data = request.get_json()
     
-    # Validate input
     if not all(k in data for k in ['username', 'email', 'name', 'password']):
         return jsonify({"error": "Missing required fields"}), 400
     
-    # Validate email format
     if not re.match(r"[^@]+@[^@]+\.[^@]+", data['email']):
         return jsonify({"error": "Invalid email format"}), 400
     
-    # Check if user already exists
     if User.query.filter_by(username=data['username']).first():
         return jsonify({"error": "Username already taken"}), 409
     
     if User.query.filter_by(email=data['email']).first():
         return jsonify({"error": "Email already registered"}), 409
     
-    # Create new user
     new_user = User(
         username=data['username'],
         email=data['email'],
@@ -36,14 +32,12 @@ def register():
         password=data['password']
     )
     
-    # Create default betting stats
     new_stats = BettingStats(user=new_user)
     
     db.session.add(new_user)
     db.session.add(new_stats)
     db.session.commit()
     
-    # Create tokens
     access_token = create_access_token(identity=new_user.id)
     refresh_token = create_refresh_token(identity=new_user.id)
     
@@ -58,22 +52,17 @@ def register():
 def login():
     data = request.get_json()
     
-    # Validate input
     if not all(k in data for k in ['username', 'password']):
         return jsonify({"error": "Missing username or password"}), 400
     
-    # Find user
     user = User.query.filter_by(username=data['username']).first()
     
-    # Verify password
     if not user or not user.check_password(data['password']):
         return jsonify({"error": "Invalid username or password"}), 401
     
-    # Update last login
     user.last_login = datetime.utcnow()
     db.session.commit()
     
-    # Create tokens
     access_token = create_access_token(identity=user.id)
     refresh_token = create_refresh_token(identity=user.id)
     

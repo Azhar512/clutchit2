@@ -8,12 +8,11 @@ from dataclasses import dataclass
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 
-# Define structured data classes
 @dataclass
 class BetInfo:
     team: str
     odds: float
-    bet_type: str  # 'spread', 'moneyline', 'over/under'
+    bet_type: str  
     stake: Optional[float] = None
     confidence: Optional[float] = None
 
@@ -34,11 +33,9 @@ class RedditPost:
 
 class RedditScraper:
     def __init__(self):
-        # Initialize logging
         self.logger = logging.getLogger(__name__)
         self._setup_logging()
         
-        # Initialize Reddit API client with error handling
         try:
             self.reddit = praw.Reddit(
                 client_id=os.environ.get('REDDIT_CLIENT_ID'),
@@ -49,7 +46,6 @@ class RedditScraper:
             self.logger.error(f"Failed to initialize Reddit client: {str(e)}")
             raise
         
-        # Enhanced subreddit categorization
         self.subreddits_by_sport = {
             'basketball': ['nba', 'ncaabb', 'basketballbetting'],
             'soccer': ['soccer', 'footballbetting', 'soccerbetting'],
@@ -58,7 +54,6 @@ class RedditScraper:
             'general': ['sportsbook', 'sportsbetting', 'sportsbookextra']
         }
         
-        # Compile regex patterns once during initialization
         self._compile_patterns()
 
     def _setup_logging(self):
@@ -94,7 +89,6 @@ class RedditScraper:
         current_time = datetime.utcnow()
         time_threshold = current_time - timedelta(hours=hours_back)
         
-        # Use ThreadPoolExecutor for parallel scraping
         with ThreadPoolExecutor(max_workers=5) as executor:
             future_to_subreddit = {
                 executor.submit(self._scrape_subreddit, subreddit, time_threshold, limit): subreddit
@@ -119,7 +113,6 @@ class RedditScraper:
         try:
             subreddit = self.reddit.subreddit(subreddit_name)
             
-            # Combine hot and new posts with deduplication
             seen_posts = set()
             for post in list(subreddit.hot(limit=limit)) + list(subreddit.new(limit=limit)):
                 if post.id in seen_posts:
@@ -162,7 +155,6 @@ class RedditScraper:
         combined_text = f"{title} {text}"
         bet_info_list = []
         
-        # Extract spread bets
         for match in self.bet_patterns['spread'].finditer(combined_text):
             team, spread = match.groups()
             bet_info_list.append(BetInfo(
@@ -171,7 +163,6 @@ class RedditScraper:
                 bet_type='spread'
             ))
         
-        # Extract moneyline bets
         for match in self.bet_patterns['moneyline'].finditer(combined_text):
             team, odds = match.groups()
             bet_info_list.append(BetInfo(
@@ -180,16 +171,14 @@ class RedditScraper:
                 bet_type='moneyline'
             ))
         
-        # Extract over/under bets
         for match in self.bet_patterns['over_under'].finditer(combined_text):
             total = match.group(1)
             bet_info_list.append(BetInfo(
-                team='',  # No team for over/under
+                team='',  
                 odds=float(total),
                 bet_type='over_under'
             ))
         
-        # Extract stake information if available
         stake_match = self.bet_patterns['stake'].search(combined_text)
         if stake_match and bet_info_list:
             stake = float(stake_match.group(1))
@@ -200,7 +189,6 @@ class RedditScraper:
 
     def _analyze_sentiment(self, title: str, text: str) -> float:
         """Basic sentiment analysis for betting posts"""
-        # This is a placeholder - implement more sophisticated sentiment analysis
         positive_words = {'confident', 'lock', 'guaranteed', 'sure', 'value'}
         negative_words = {'risky', 'uncertain', 'avoid', 'sketchy'}
         
@@ -218,11 +206,9 @@ class RedditScraper:
     @staticmethod
     def _get_nba_teams() -> List[str]:
         """Return list of NBA team names"""
-        # Add comprehensive team list
-        return ['lakers', 'celtics', 'warriors', 'nets', 'bucks']  # Add more teams
-
+        return ['lakers', 'celtics', 'warriors', 'nets', 'bucks'] 
     @staticmethod
     def _get_soccer_teams() -> List[str]:
         """Return list of major soccer team names"""
-        return ['manchester united', 'liverpool', 'barcelona', 'real madrid']  # Add more teams
+        return ['manchester united', 'liverpool', 'barcelona', 'real madrid'] 
 

@@ -11,10 +11,8 @@ def upload_file_to_gcs(file_obj, destination_blob_name):
     bucket = client.bucket(current_app.config['GCP_BUCKET_NAME'])
     blob = bucket.blob(destination_blob_name)
     
-    # Upload the file
     blob.upload_from_file(file_obj)
     
-    # Make the blob publicly viewable (optional, depending on security requirements)
     blob.make_public()
     
     return f"gs://{current_app.config['GCP_BUCKET_NAME']}/{destination_blob_name}"
@@ -27,7 +25,6 @@ def delete_file_from_gcs(blob_name):
     bucket = client.bucket(current_app.config['GCP_BUCKET_NAME'])
     blob = bucket.blob(blob_name)
     
-    # Delete the file
     blob.delete()
     
     return True

@@ -4,24 +4,22 @@ from datetime import datetime, timedelta
 from typing import Dict, Optional
 from dataclasses import dataclass
 
-# Initialize Stripe
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
 
-# Subscription tier price IDs (should be in config)
 SUBSCRIPTION_TIERS = {
     'basic': {
         'price_id': 'price_basic_id',
-        'amount': 1000,  # $10.00
+        'amount': 1000,  
         'name': 'Basic'
     },
     'premium': {
         'price_id': 'price_premium_id',
-        'amount': 2000,  # $20.00
+        'amount': 2000,  
         'name': 'Premium'
     },
     'unlimited': {
         'price_id': 'price_unlimited_id',
-        'amount': 4000,  # $40.00
+        'amount': 4000,  
         'name': 'Unlimited'
     }
 }
@@ -102,7 +100,6 @@ def process_marketplace_payment(
     Process a marketplace transaction with 90/10 split and detailed metadata
     """
     try:
-        # Calculate amounts
         amount_cents = int(amount * 100)
         seller_amount = amount * 0.9
         platform_fee = amount * 0.1
@@ -120,8 +117,8 @@ def process_marketplace_payment(
                 'created_at': datetime.utcnow().isoformat()
             },
             transfer_data={
-                'destination': seller_id,  # Seller's Connect account ID
-                'amount': int(seller_amount * 100)  # Seller's 90% in cents
+                'destination': seller_id, 
+                'amount': int(seller_amount * 100)  
             }
         )
 
@@ -217,13 +214,11 @@ def update_subscription_tier(subscription_id: str, new_tier: str) -> Dict:
     try:
         subscription = stripe.Subscription.retrieve(subscription_id)
         
-        # Update the subscription item with new price
         stripe.SubscriptionItem.modify(
             subscription.items.data[0].id,
             price=SUBSCRIPTION_TIERS[new_tier]['price_id']
         )
         
-        # Update metadata
         stripe.Subscription.modify(
             subscription_id,
             metadata={
@@ -240,5 +235,4 @@ def update_subscription_tier(subscription_id: str, new_tier: str) -> Dict:
     except stripe.error.StripeError as e:
         raise StripeServiceError(f"Failed to update subscription tier: {str(e)}")
     
-    # Add this at the end of stripe_service.py
 process_payment = process_marketplace_payment
