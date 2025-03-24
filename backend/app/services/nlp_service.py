@@ -1,19 +1,15 @@
-# services/nlp_service.py (NLP processing)
 import re
 import spacy
 from collections import defaultdict
 
-# Load spaCy model
 nlp = spacy.load("en_core_web_md")
 
 def process_text(text):
     """
     Process text input to extract betting information using NLP
     """
-    # Process with spaCy
     doc = nlp(text)
     
-    # Initialize bet data structure
     bet_data = {
         'original_text': text,
         'teams': [],
@@ -24,27 +20,20 @@ def process_text(text):
         'extracted_entities': defaultdict(list)
     }
     
-    # Extract entities
     for ent in doc.ents:
         bet_data['extracted_entities'][ent.label_].append(ent.text)
         
-        # Look for team names (Organizations or sports teams)
         if ent.label_ in ['ORG']:
             bet_data['teams'].append(ent.text)
     
-    # Look for sports keywords
     bet_data['sport'] = identify_sport(text)
     
-    # Extract odds from text
     bet_data['odds'] = extract_odds_from_text(text)
     
-    # Determine bet type
     bet_data['bet_type'] = identify_bet_type_from_text(text)
     
-    # Extract bet amount
     bet_data['amount'] = extract_amount_from_text(text)
     
-    # Calculate confidence score for the extraction
     bet_data['confidence_score'] = calculate_confidence(bet_data)
     
     return bet_data
@@ -69,10 +58,9 @@ def identify_sport(text):
 
 def extract_odds_from_text(text):
     """Extract odds from text"""
-    # Similar to the OCR function but optimized for direct text input
     odds_patterns = [
-        r'[+-]\d{3}',  # American odds like +150, -200
-        r'\d+\.\d+',   # Decimal odds like 1.50, 2.25
+        r'[+-]\d{3}',  
+        r'\d+\.\d+',   
     ]
     
     odds = []
@@ -103,11 +91,11 @@ def identify_bet_type_from_text(text):
 def extract_amount_from_text(text):
     """Extract bet amount from text"""
     amount_patterns = [
-        r'\$\d+(?:\.\d{2})?',  # $10 or $10.50
-        r'€\d+(?:\.\d{2})?',   # €10 or €10.50
-        r'£\d+(?:\.\d{2})?',   # £10 or £10.50
-        r'betting\s+(\d+)',    # betting 100
-        r'wagering\s+(\d+)',   # wagering 100
+        r'\$\d+(?:\.\d{2})?',  
+        r'€\d+(?:\.\d{2})?',   
+        r'£\d+(?:\.\d{2})?',  
+        r'betting\s+(\d+)',    
+        r'wagering\s+(\d+)',   
     ]
     
     for pattern in amount_patterns:
@@ -119,9 +107,8 @@ def extract_amount_from_text(text):
 
 def calculate_confidence(bet_data):
     """Calculate a confidence score for the extraction"""
-    # Simple confidence scoring based on completeness of extraction
     score = 0
-    total_fields = 4  # teams, odds, bet_type, sport
+    total_fields = 4  
     
     if bet_data['teams']:
         score += 1
