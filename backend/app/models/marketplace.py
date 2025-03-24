@@ -2,7 +2,6 @@ from  app import db
 from datetime import datetime
 from sqlalchemy.sql import func
 
-# Association table for user purchased picks
 user_picks = db.Table('user_picks',
     db.Column('user_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
     db.Column('pick_id', db.Integer, db.ForeignKey('picks.id'), primary_key=True),
@@ -22,12 +21,11 @@ class Pick(db.Model):
     sales = db.Column(db.Integer, default=0)
     trending = db.Column(db.Boolean, default=False)
     popular_tag = db.Column(db.String(50))
-    required_tier = db.Column(db.Integer, default=0)  # 0=free, 1=basic, 2=premium, 3=unlimited
+    required_tier = db.Column(db.Integer, default=0) 
     active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationships
     author = db.relationship('User', backref='authored_picks')
     category = db.relationship('Category', backref='picks')
     
@@ -55,7 +53,6 @@ class FeaturedPick(db.Model):
     active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Relationships
     pick = db.relationship('Pick')
     
     def to_dict(self):

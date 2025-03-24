@@ -1,4 +1,3 @@
-# app/models/betting_stats.py
 from app.db import db
 from datetime import datetime
 
@@ -16,7 +15,6 @@ class BettingStats(db.Model):
     picks_sold = db.Column(db.Integer, default=0)
     last_updated = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Use string-based relationship to avoid circular imports
     user = db.relationship('User', back_populates='betting_stats')
     
     def to_dict(self):

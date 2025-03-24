@@ -18,28 +18,24 @@ class Bet(db.Model):
     amount = Column(Float, nullable=False)
     odds = Column(Float, nullable=False)
     profit = Column(Float, default=0.0)
-    status = Column(String(20), default='pending')  # pending, win, loss
+    status = Column(String(20), default='pending')  
     event_name = Column(String(255))
     event_date = Column(DateTime)
-    bet_type = Column(String(50))  # moneyline, spread, over/under, parlay
-    selection = Column(String(255))  # Team or selection name
+    bet_type = Column(String(50)) 
+    selection = Column(String(255))  
     created_at = Column(DateTime, default=datetime.utcnow)
     settled_at = Column(DateTime)
     prediction_id = Column(Integer, ForeignKey('predictions.id'), nullable=True)
     is_clutch_pick = Column(Boolean, default=False)
     
-    # Add expected_value and win_probability fields from bet_service.py
     expected_value = Column(Float, default=0.0)
     win_probability = Column(Float, default=0.0)
     potential_payout = Column(Float, default=0.0)
     
-    # Fields for bet slip uploads
     slip_image_path = Column(String(255))
     upload_date = Column(DateTime)
     
-    # Relationships
     user = relationship("User", back_populates="bets")
-    # Use string-based relationship to avoid circular import
     prediction = relationship("Prediction", back_populates="bets", foreign_keys=[prediction_id])
     legs = relationship("BetLeg", back_populates="bet")
     
@@ -54,14 +50,13 @@ class BetLeg(db.Model):
     team_name = Column(String(255))
     opponent_name = Column(String(255))
     sport_type = Column(String(50))
-    bet_type = Column(String(50))  # moneyline, spread, total, etc.
+    bet_type = Column(String(50)) 
     odds = Column(Float, nullable=False)
-    line = Column(Float)  # For spread and total bets
+    line = Column(Float)  
     status = Column(String(20), default='pending')
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationship back to the parent bet
     bet = relationship("Bet", back_populates="legs")
     
     def __repr__(self):
@@ -106,7 +101,6 @@ def create_bet(
         Bet: Created bet object
     """
     try:
-        # Create the main bet
         new_bet = Bet(
             user_id=user_id,
             amount=amount,
@@ -124,7 +118,6 @@ def create_bet(
             created_at=datetime.utcnow()
         )
         
-        # Add bet legs if provided
         if legs:
             bet_legs = []
             for leg_data in legs:
@@ -141,7 +134,6 @@ def create_bet(
             
             new_bet.legs = bet_legs
         
-        # Add to session and commit
         db.session.add(new_bet)
         db.session.commit()
         

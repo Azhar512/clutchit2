@@ -1,4 +1,3 @@
-# File: app/models/faq.py
 
 from  app.db import db
 from datetime import datetime
@@ -14,7 +13,6 @@ class FAQCategory(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationship with FAQs
     faqs = db.relationship('FAQ', backref='category', lazy=True)
     
     def __repr__(self):

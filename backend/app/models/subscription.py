@@ -31,9 +31,9 @@ class Subscription(db.Model):
         if subscription_type == SubscriptionType.BASIC:
             return 10
         elif subscription_type == SubscriptionType.PREMIUM:
-            return 999999  # Unlimited
+            return 999999  
         elif subscription_type == SubscriptionType.UNLIMITED:
-            return 999999  # Unlimited
+            return 999999 
         return 0
     
     @staticmethod
@@ -44,5 +44,5 @@ class Subscription(db.Model):
         elif subscription_type == SubscriptionType.PREMIUM:
             return 20
         elif subscription_type == SubscriptionType.UNLIMITED:
-            return 999999  # Unlimited
+            return 999999 
         return 0

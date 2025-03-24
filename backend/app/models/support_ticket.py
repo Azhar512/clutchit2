@@ -13,11 +13,10 @@ class SupportTicket(db.Model):
     subject = db.Column(db.String(255), nullable=False)
     message = db.Column(db.Text, nullable=False)
     category = db.Column(db.String(50), default='General')
-    status = db.Column(db.String(20), default='Open')  # Open, In Progress, Resolved, Closed
+    status = db.Column(db.String(20), default='Open') 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
     
-    # Relationship with responses
     responses = db.relationship('TicketResponse', backref='ticket', lazy=True)
     
     def __repr__(self):

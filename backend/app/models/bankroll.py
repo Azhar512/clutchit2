@@ -1,4 +1,3 @@
-# File: models/bankroll.py
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from  app.models import db
@@ -11,11 +10,10 @@ class Bankroll(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     current_amount = db.Column(db.Float, nullable=False)
     target_profit = db.Column(db.Float, nullable=False)
-    risk_profile = db.Column(db.String(20), nullable=False)  # 'low', 'medium', 'high'
+    risk_profile = db.Column(db.String(20), nullable=False)  
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Define relationship to user
     user = db.relationship('User', backref=db.backref('bankroll', lazy=True))
     
     def to_dict(self):
@@ -39,7 +37,6 @@ class BankrollHistory(db.Model):
     amount = db.Column(db.Float, nullable=False)
     date = db.Column(db.Date, nullable=False)
     
-    # Define relationship to bankroll
     bankroll = db.relationship('Bankroll', backref=db.backref('history', lazy=True))
 
 class WagerRecommendation(db.Model):
@@ -54,7 +51,6 @@ class WagerRecommendation(db.Model):
     bet_id = db.Column(db.Integer, db.ForeignKey('bets.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Define relationship to bankroll
     bankroll = db.relationship('Bankroll', backref=db.backref('recommendations', lazy=True))
     
     def to_dict(self):

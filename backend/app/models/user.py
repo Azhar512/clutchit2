@@ -1,4 +1,3 @@
-# app/models/user.py
 from app.db import db
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -15,7 +14,6 @@ class User(db.Model):
     profile_picture = db.Column(db.String(256), default=None)
     last_login = db.Column(db.DateTime, default=None)
     
-    # Use string-based relationships to avoid circular imports
     subscription = db.relationship('Subscription', back_populates='user', uselist=False)
     betting_stats = db.relationship('BettingStats', back_populates='user', uselist=False)
     bets = db.relationship('Bet', back_populates='user')

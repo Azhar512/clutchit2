@@ -12,14 +12,14 @@ class Prediction(db.Model):
     event_name = Column(String(255), nullable=False)
     event_date = Column(DateTime, nullable=False)
     sport = Column(String(50), nullable=False)
-    market_type = Column(String(50))  # moneyline, spread, total, etc.
+    market_type = Column(String(50)) 
     selection = Column(String(255))
     confidence = Column(Float)
     odds = Column(Float)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    status = Column(String(20), default='active')  # active, settled, cancelled
-    outcome = Column(String(20))  # win, loss
+    status = Column(String(20), default='active')  
+    outcome = Column(String(20))  
     is_featured = Column(Boolean, default=False)
     is_clutch_pick = Column(Boolean, default=False)
     
