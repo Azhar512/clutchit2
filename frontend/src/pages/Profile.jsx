@@ -18,9 +18,8 @@ const Profile = () => {
   const [error, setError] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [editedProfile, setEditedProfile] = useState({});
-  const [currentView, setCurrentView] = useState('general'); // general, notifications, billing, etc.
+  const [currentView, setCurrentView] = useState('general'); 
 
-  // API URL
   const API_URL = 'http://localhost:5000/api';
 
   useEffect(() => {
@@ -29,14 +28,12 @@ const Profile = () => {
 
   const fetchUserProfile = async () => {
     try {
-      // Get token from localStorage
       const token = localStorage.getItem('access_token');
       
       if (!token) {
         throw new Error("Not authenticated");
       }
       
-      // Make request to backend
       const response = await axios.get(`${API_URL}/profile/`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -51,9 +48,7 @@ const Profile = () => {
       setError("Failed to load profile data");
       setLoading(false);
       
-      // Handle token refresh or redirect to login if needed
       if (err.response && err.response.status === 401) {
-        // Redirect to login
         window.location.href = '/login';
       }
       
@@ -73,7 +68,6 @@ const Profile = () => {
         throw new Error("Not authenticated");
       }
       
-      // Make PUT request to update profile
       await axios.put(`${API_URL}/profile/`, editedProfile, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -112,7 +106,6 @@ const Profile = () => {
     window.location.href = '/login';
   };
 
-  // Mouse movement and animations
   useEffect(() => {
     const handleMouseMove = (event) => {
       setMousePosition({
@@ -127,7 +120,6 @@ const Profile = () => {
     };
   }, []);
 
-  // Canvas animation setup code (same as before)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -136,7 +128,6 @@ const Profile = () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     
-    // Particle class
     class Particle {
       constructor() {
         this.x = Math.random() * canvas.width;
@@ -150,10 +141,10 @@ const Profile = () => {
       
       getRandomColor() {
         const colors = [
-          'rgba(168, 85, 247, 0.4)',  // Purple
-          'rgba(139, 92, 246, 0.3)',  // Indigo
-          'rgba(79, 70, 229, 0.3)',   // Indigo darker
-          'rgba(191, 219, 254, 0.2)', // Light blue
+          'rgba(168, 85, 247, 0.4)',  
+          'rgba(139, 92, 246, 0.3)',  
+          'rgba(79, 70, 229, 0.3)',   
+          'rgba(191, 219, 254, 0.2)', 
         ];
         return colors[Math.floor(Math.random() * colors.length)];
       }
@@ -186,7 +177,6 @@ const Profile = () => {
       }
     }
     
-    // Create particle array
     const particleArray = [];
     const particleCount = Math.min(100, window.innerWidth / 20);
     
@@ -194,7 +184,6 @@ const Profile = () => {
       particleArray.push(new Particle());
     }
     
-    // Draw wave background
     function drawWave(yOffset, amplitude, wavelength, color) {
       ctx.beginPath();
       ctx.moveTo(0, yOffset);
@@ -211,11 +200,9 @@ const Profile = () => {
       ctx.fill();
     }
     
-    // Animation loop
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      // Draw animated waves
       const time = Date.now() / 10000;
       drawWave(
         canvas.height * 0.85 + Math.sin(time) * 20, 
@@ -230,13 +217,11 @@ const Profile = () => {
         'rgba(109, 40, 217, 0.07)'
       );
       
-      // Update and draw particles
       particleArray.forEach(particle => {
         particle.update();
         particle.draw();
       });
       
-      // Draw mouse trail
       if (mousePosition.x > 0 && mousePosition.y > 0) {
         ctx.beginPath();
         ctx.arc(mousePosition.x, mousePosition.y, 60, 0, Math.PI * 2);
@@ -274,7 +259,6 @@ const Profile = () => {
     };
   }, [mousePosition]);
 
-  // Setup animation effects
   useEffect(() => {
     const animateStars = () => {
       const stars = document.querySelectorAll('.star-effect');
@@ -300,7 +284,6 @@ const Profile = () => {
     floatingElements();
   }, []);
 
-  // Loading state
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-900">
@@ -309,7 +292,6 @@ const Profile = () => {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-900">
@@ -324,7 +306,6 @@ const Profile = () => {
     );
   }
 
-  // Render account settings based on current view
   const renderSettingsContent = () => {
     switch(currentView) {
       case 'general':
@@ -498,7 +479,6 @@ const Profile = () => {
     }
   };
 
-  // Main render
   return (
     <div className="dashboard-container min-h-screen bg-gray-900 py-8">
       {/* Canvas for background animations */}

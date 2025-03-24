@@ -57,12 +57,10 @@ const Signup = () => {
         password: formData.password
       });
       
-      // Save tokens to localStorage
       localStorage.setItem('accessToken', response.data.access_token);
       localStorage.setItem('refreshToken', response.data.refresh_token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       
-      // Redirect to dashboard
       navigate('/dashboard');
       
     } catch (err) {
