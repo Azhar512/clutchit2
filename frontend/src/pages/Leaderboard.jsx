@@ -12,13 +12,11 @@ const Leaderboard = () => {
   const canvasRef = useRef(null);
   const animationFrameRef = useRef(null);
 
-  // Fetch data from backend
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         
-        // Get JWT token from localStorage
         const token = localStorage.getItem('auth_token');
         if (!token) {
           throw new Error('Authentication token not found');
@@ -30,19 +28,16 @@ const Leaderboard = () => {
           }
         };
         
-        // Fetch top performers
         const topPerformersResponse = await axios.get(
           `${process.env.REACT_APP_API_URL}/api/leaderboard/top?limit=5`, 
           config
         );
         
-        // Fetch current user stats
         const currentUserResponse = await axios.get(
           `${process.env.REACT_APP_API_URL}/api/leaderboard/user/current`, 
           config
         );
         
-        // Check if requests were successful
         if (!topPerformersResponse.data.success || !currentUserResponse.data.success) {
           throw new Error('Failed to fetch leaderboard data');
         }
@@ -60,7 +55,6 @@ const Leaderboard = () => {
     fetchData();
   }, []);
 
-  // Handle mouse movement for interactive light effects
   useEffect(() => {
     const handleMouseMove = (event) => {
       setMousePosition({
@@ -73,7 +67,6 @@ const Leaderboard = () => {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  // Canvas and particle animation setup
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -95,10 +88,10 @@ const Leaderboard = () => {
       
       getRandomColor() {
         const colors = [
-          'rgba(168, 85, 247, 0.4)',  // Purple
-          'rgba(139, 92, 246, 0.3)',  // Indigo
-          'rgba(79, 70, 229, 0.3)',   // Indigo darker
-          'rgba(191, 219, 254, 0.2)', // Light blue
+          'rgba(168, 85, 247, 0.4)',  
+          'rgba(139, 92, 246, 0.3)',  
+          'rgba(79, 70, 229, 0.3)',   
+          'rgba(191, 219, 254, 0.2)', 
         ];
         return colors[Math.floor(Math.random() * colors.length)];
       }
@@ -125,7 +118,6 @@ const Leaderboard = () => {
       }
     }
 
-    // Create particle array
     const particleArray = [];
     const particleCount = Math.min(100, window.innerWidth / 20);
     
@@ -133,7 +125,6 @@ const Leaderboard = () => {
       particleArray.push(new Particle());
     }
 
-    // Draw wave background
     function drawWave(yOffset, amplitude, wavelength, color) {
       ctx.beginPath();
       ctx.moveTo(0, yOffset);
@@ -150,11 +141,9 @@ const Leaderboard = () => {
       ctx.fill();
     }
 
-    // Animation loop
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      // Draw animated waves
       const time = Date.now() / 10000;
       drawWave(
         canvas.height * 0.85 + Math.sin(time) * 20, 
@@ -169,13 +158,11 @@ const Leaderboard = () => {
         'rgba(109, 40, 217, 0.07)'
       );
       
-      // Update and draw particles
       particleArray.forEach(particle => {
         particle.update();
         particle.draw();
       });
       
-      // Draw mouse trail
       if (mousePosition.x > 0 && mousePosition.y > 0) {
         ctx.beginPath();
         ctx.arc(mousePosition.x, mousePosition.y, 60, 0, Math.PI * 2);
