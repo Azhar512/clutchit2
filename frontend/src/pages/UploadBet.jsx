@@ -14,7 +14,6 @@ const UploadBet = () => {
   const canvasRef = useRef(null);
   const animationFrameRef = useRef(null);
   
-  // Handle mouse movement for interactive light effects
   useEffect(() => {
     const handleMouseMove = (event) => {
       setMousePosition({
@@ -29,7 +28,6 @@ const UploadBet = () => {
     };
   }, []);
   
-  // Setup particle animation on canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -38,7 +36,6 @@ const UploadBet = () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     
-    // Particle class
     class Particle {
       constructor() {
         this.x = Math.random() * canvas.width;
@@ -52,10 +49,10 @@ const UploadBet = () => {
       
       getRandomColor() {
         const colors = [
-          'rgba(168, 85, 247, 0.4)',  // Purple
-          'rgba(139, 92, 246, 0.3)',  // Indigo
-          'rgba(79, 70, 229, 0.3)',   // Indigo darker
-          'rgba(191, 219, 254, 0.2)', // Light blue
+          'rgba(168, 85, 247, 0.4)',  
+          'rgba(139, 92, 246, 0.3)',  
+          'rgba(79, 70, 229, 0.3)',   
+          'rgba(191, 219, 254, 0.2)', 
         ];
         return colors[Math.floor(Math.random() * colors.length)];
       }
@@ -66,7 +63,6 @@ const UploadBet = () => {
         
         if (this.size > 0.2) this.size -= 0.01;
         
-        // Reset particle when it gets too small or goes off screen
         if (this.size <= 0.2 || 
             this.x < 0 || 
             this.x > canvas.width || 
@@ -89,15 +85,13 @@ const UploadBet = () => {
       }
     }
     
-    // Create particle array
-    const particleArray = [];
+     const particleArray = [];
     const particleCount = Math.min(100, window.innerWidth / 20);
     
     for (let i = 0; i < particleCount; i++) {
       particleArray.push(new Particle());
     }
     
-    // Draw wave background
     function drawWave(yOffset, amplitude, wavelength, color) {
       ctx.beginPath();
       ctx.moveTo(0, yOffset);
@@ -114,11 +108,9 @@ const UploadBet = () => {
       ctx.fill();
     }
     
-    // Animation loop
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      // Draw animated waves
       const time = Date.now() / 10000;
       drawWave(
         canvas.height * 0.85 + Math.sin(time) * 20, 
@@ -133,13 +125,11 @@ const UploadBet = () => {
         'rgba(109, 40, 217, 0.07)'
       );
       
-      // Update and draw particles
       particleArray.forEach(particle => {
         particle.update();
         particle.draw();
       });
       
-      // Draw mouse trail if mouse has moved
       if (mousePosition.x > 0 && mousePosition.y > 0) {
         ctx.beginPath();
         ctx.arc(mousePosition.x, mousePosition.y, 60, 0, Math.PI * 2);
@@ -162,7 +152,6 @@ const UploadBet = () => {
     
     animate();
     
-    // Handle resize
     const handleResize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -170,7 +159,6 @@ const UploadBet = () => {
     
     window.addEventListener('resize', handleResize);
     
-    // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
       if (animationFrameRef.current) {
@@ -179,7 +167,6 @@ const UploadBet = () => {
     };
   }, []);
   
-  // Animate light effects
   useEffect(() => {
     const animateStars = () => {
       const stars = document.querySelectorAll('.star-effect');
@@ -205,9 +192,7 @@ const UploadBet = () => {
     floatingElements();
   }, []);
 
-  // File validation function
   const validateFile = (file) => {
-    // Check file type
     const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
     if (!allowedTypes.includes(file.type)) {
       setUploadStatus({
@@ -217,8 +202,7 @@ const UploadBet = () => {
       return false;
     }
     
-    // Check file size (10MB limit)
-    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    const maxSize = 10 * 1024 * 1024; 
     if (file.size > maxSize) {
       setUploadStatus({
         type: 'error',
@@ -230,7 +214,6 @@ const UploadBet = () => {
     return true;
   };
 
-  // Handle file selection
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -244,20 +227,14 @@ const UploadBet = () => {
     }
   };
 
-  // Handle click on upload button
   const handleUploadClick = () => {
     fileInputRef.current.click();
   };
 
-  // Handle manual entry button click
   const handleManualEntryClick = () => {
-    // Navigate to manual entry form
-    // This depends on your routing implementation
-    // Example: history.push('/manual-bet-entry');
     console.log('Navigate to manual entry form');
   };
 
-  // Handle drag and drop events
   const handleDragOver = (e) => {
     e.preventDefault();
     setIsDragging(true);
@@ -283,7 +260,6 @@ const UploadBet = () => {
     }
   };
 
-  // Submit file to backend
   const handleSubmit = async () => {
     if (!selectedFile) {
       setUploadStatus({
@@ -299,15 +275,12 @@ const UploadBet = () => {
       message: 'Uploading bet slip...'
     });
     
-    // Create form data
     const formData = new FormData();
     formData.append('file', selectedFile);
     
     try {
-      // Get auth token from localStorage (adjust based on your auth implementation)
       const token = localStorage.getItem('token');
       
-      // Send file to backend
       const response = await axios.post('/api/bets/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -315,17 +288,12 @@ const UploadBet = () => {
         }
       });
       
-      // Handle successful upload
       setUploadStatus({
         type: 'success',
         message: 'Bet slip uploaded successfully! Analyzing your bet...'
       });
       
-      // Redirect to bet analysis page after short delay
       setTimeout(() => {
-        // Navigate to bet analysis page with the bet ID
-        // This depends on your routing implementation
-        // Example: history.push(`/bet/${response.data.bet_id}`);
         console.log('Navigate to bet analysis page', response.data.bet_id);
       }, 2000);
       
