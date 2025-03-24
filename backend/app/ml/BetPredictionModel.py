@@ -13,13 +13,11 @@ class BetPredictionModel:
         """
         Load the trained model from file or GCP
         """
-        # In a production environment, you'd load from a saved model
-        # For now, we'll create a simple model
         model = tf.keras.Sequential([
             tf.keras.layers.Dense(64, activation='relu', input_shape=(10,)),
             tf.keras.layers.Dense(32, activation='relu'),
             tf.keras.layers.Dense(16, activation='relu'),
-            tf.keras.layers.Dense(2, activation='softmax')  # Win/Loss prediction
+            tf.keras.layers.Dense(2, activation='softmax') 
         ])
         
         model.compile(optimizer='adam',
@@ -32,7 +30,6 @@ class BetPredictionModel:
         """
         Make predictions using the trained model
         """
-        # Get model prediction
         predictions = self.model.predict(np.array([features]))
         win_probability = predictions[0][1]
         
@@ -49,14 +46,10 @@ class BetPredictionModel:
         """
         Process and normalize features for the model
         """
-        # This would be more sophisticated in production
-        # For now, we'll create a simple array
         feature_array = np.zeros(10)
         
-        # Set values based on available features
         if 'odds' in bet_data:
-            feature_array[0] = min(bet_data['odds'] / 1000, 1.0)  # Normalize odds
-        
+            feature_array[0] = min(bet_data['odds'] / 1000, 1.0)  
         if 'sport' in bet_data:
             sport_index = {'basketball': 1, 'soccer': 2, 'baseball': 3}.get(bet_data['sport'], 0)
             feature_array[1] = sport_index / 3
@@ -66,6 +59,6 @@ class BetPredictionModel:
             feature_array[2] = bet_type_index / 5
             
         if 'sentiment_score' in bet_data:
-            feature_array[3] = (bet_data['sentiment_score'] + 1) / 2  # Normalize from [-1,1] to [0,1]
+            feature_array[3] = (bet_data['sentiment_score'] + 1) / 2 
         
         return feature_array

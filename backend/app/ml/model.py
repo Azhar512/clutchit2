@@ -7,13 +7,11 @@ def load_model():
     """
     Load the trained model from file or GCP
     """
-    # In a production environment, you'd load from a saved model
-    # For now, we'll create a simple model
     model = tf.keras.Sequential([
         tf.keras.layers.Dense(64, activation='relu', input_shape=(10,)),
         tf.keras.layers.Dense(32, activation='relu'),
         tf.keras.layers.Dense(16, activation='relu'),
-        tf.keras.layers.Dense(2, activation='softmax')  # Win/Loss prediction
+        tf.keras.layers.Dense(2, activation='softmax')  
     ])
     
     model.compile(optimizer='adam',
@@ -26,14 +24,11 @@ def predict(model, features):
     """
     Make predictions using the trained model
     """
-    # Convert features to the right format
     processed_features = process_features(features)
     
-    # Get model prediction
     predictions = model.predict(np.array([processed_features]))
     win_probability = predictions[0][1]
     
-    # Calculate EV based on odds and win probability
     odds = features.get('odds', 0)
     ev = calculate_ev(odds, win_probability)
     
@@ -48,13 +43,10 @@ def process_features(features_dict):
     """
     Process and normalize features for the model
     """
-    # This would be more sophisticated in production
-    # For now, we'll create a simple array
     feature_array = np.zeros(10)
     
-    # Set values based on available features
     if 'odds' in features_dict:
-        feature_array[0] = min(features_dict['odds'] / 1000, 1.0)  # Normalize odds
+        feature_array[0] = min(features_dict['odds'] / 1000, 1.0)  
     
     if 'sport' in features_dict:
         sport_index = {'basketball': 1, 'soccer': 2, 'baseball': 3}.get(features_dict['sport'], 0)
@@ -65,7 +57,7 @@ def process_features(features_dict):
         feature_array[2] = bet_type_index / 5
         
     if 'sentiment_score' in features_dict:
-        feature_array[3] = (features_dict['sentiment_score'] + 1) / 2  # Normalize from [-1,1] to [0,1]
+        feature_array[3] = (features_dict['sentiment_score'] + 1) / 2  
     
     return feature_array
 
@@ -83,5 +75,4 @@ def calculate_ev(odds, win_probability):
     ev = (win_probability * potential_profit) - ((1 - win_probability) * potential_loss)
     return ev
 
-# Add this at the end of model.py
 get_prediction = predict
