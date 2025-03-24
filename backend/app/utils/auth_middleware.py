@@ -10,7 +10,6 @@ def token_required(f):
     def decorated(*args, **kwargs):
         token = None
 
-        # Check if token is in headers
         if 'Authorization' in request.headers:
             auth_header = request.headers['Authorization']
             if auth_header.startswith('Bearer '):
@@ -23,7 +22,6 @@ def token_required(f):
             }), 401
 
         try:
-            # Decode token
             data = jwt.decode(token, JWT_SECRET_KEY, algorithms=["HS256"])
             current_user = {'id': data['user_id']}
         except jwt.ExpiredSignatureError:
@@ -46,7 +44,6 @@ def auth_required(f):
     def decorated_function(*args, **kwargs):
         token = None
 
-        # Check if token is in headers
         if 'Authorization' in request.headers:
             auth_header = request.headers['Authorization']
             if auth_header.startswith('Bearer '):
@@ -56,7 +53,6 @@ def auth_required(f):
             return jsonify({"error": "Authentication required"}), 401
 
         try:
-            # Decode token
             data = jwt.decode(token, JWT_SECRET_KEY, algorithms=["HS256"])
             g.user_id = data['user_id']
         except:
@@ -68,13 +64,9 @@ def auth_required(f):
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # This should be implemented after auth_required
-        # It assumes g.user_id is set by auth_required
         if not hasattr(g, 'user_id'):
             return jsonify({"error": "Authentication required"}), 401
         
-        # Here you would check if the user is an admin
-        # For example, using your User model
         from  app.models.user import User
         user = User.get_by_id(g.user_id)
         
@@ -89,6 +81,6 @@ def get_user_id_from_token(token):
         data = jwt.decode(token, JWT_SECRET_KEY, algorithms=["HS256"])
         return data.get("user_id")
     except jwt.ExpiredSignatureError:
-        return None  # Token expired
+        return None  
     except jwt.InvalidTokenError:
-        return None  # Invalid token
+        return None  

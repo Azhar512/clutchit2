@@ -10,18 +10,15 @@ db = SQLAlchemy()
 migrate = Migrate()
 
 def create_app(config_class=Config):
-    # Set static folder to the React build directory
     static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'frontend', 'build')
     
     app = Flask(__name__, static_folder=static_folder, static_url_path='')
     app.config.from_object(config_class)
     
-    # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
     CORS(app)
     
-    # Register blueprints
     from  app.Routes.auth_routes import auth_bp
     from  app.Routes.bets import bp as bets_bp
     from  app.Routes.marketplace_routes import marketplace_bp
@@ -34,7 +31,6 @@ def create_app(config_class=Config):
     app.register_blueprint(predictions_bp, url_prefix='/api/predictions')
     app.register_blueprint(users_bp, url_prefix='/api/users')
     
-    # Serve React App - Root path and all other routes
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
     def serve(path):

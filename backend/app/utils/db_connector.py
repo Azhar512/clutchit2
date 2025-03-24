@@ -1,4 +1,3 @@
-# /backend/utils/db_connector.py
 from pymongo import MongoClient
 from  config import Config
 

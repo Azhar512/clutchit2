@@ -3,7 +3,6 @@ from werkzeug.exceptions import HTTPException
 import traceback
 import logging
 
-# Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -95,7 +94,6 @@ def register_error_handlers(app):
             "message": "An unexpected error occurred"
         }), 500
     
-    # Custom error handlers for Clutch app-specific errors
     class SubscriptionError(Exception):
         """Error for subscription-related issues"""
         pass
@@ -147,7 +145,6 @@ def register_error_handlers(app):
             "message": str(error)
         }), 400
     
-    # Make the custom exceptions available to import
     app.SubscriptionError = SubscriptionError
     app.AIModelError = AIModelError
     app.DataProcessingError = DataProcessingError
