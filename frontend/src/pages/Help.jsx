@@ -11,7 +11,6 @@ const Help = () => {
   const animationFrameRef = useRef(null);
   const navigate = useNavigate();
   
-  // State for data from API
   const [faqCategories, setFaqCategories] = useState([]);
   const [popularQuestions, setPopularQuestions] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,7 +23,6 @@ const Help = () => {
     questions: null
   });
 
-  // Define icons map for category icons
   const categoryIconMap = {
     'account': HelpCircle,
     'billing': CreditCard,
@@ -36,12 +34,10 @@ const Help = () => {
     'support': MessageCircle
   };
 
-  // Fetch FAQ categories and popular questions from API
   useEffect(() => {
     const fetchFaqCategories = async () => {
       setLoading(prev => ({ ...prev, categories: true }));
       try {
-        // Updated to use your Flask backend endpoint
         const response = await axios.get('/api/help/categories');
         setFaqCategories(response.data.categories.map(category => ({
           ...category,
@@ -58,7 +54,6 @@ const Help = () => {
     const fetchPopularQuestions = async () => {
       setLoading(prev => ({ ...prev, questions: true }));
       try {
-        // Updated to use your Flask backend endpoint
         const response = await axios.get('/api/help/popular-questions');
         setPopularQuestions(response.data.questions);
       } catch (err) {
@@ -73,12 +68,10 @@ const Help = () => {
     fetchPopularQuestions();
   }, []);
 
-  // Handle search input change
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
 
-  // Handle search submission
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (searchQuery.trim().length >= 3) {
@@ -86,22 +79,18 @@ const Help = () => {
     }
   };
 
-  // Handle category click
   const handleCategoryClick = (categorySlug) => {
     navigate(`/help/category/${categorySlug}`);
   };
 
-  // Handle question click
   const handleQuestionClick = (questionId) => {
     navigate(`/help/faq/${questionId}`);
   };
 
-  // Handle contact support
   const handleContactSupport = () => {
     navigate('/help/contact');
   };
 
-  // Handle mouse movement for interactive light effects
   useEffect(() => {
     const handleMouseMove = (event) => {
       setMousePosition({
@@ -214,13 +203,11 @@ const Help = () => {
         'rgba(109, 40, 217, 0.07)'
       );
       
-      // Update and draw particles
       particleArray.forEach(particle => {
         particle.update();
         particle.draw();
       });
       
-      // Draw mouse trail if mouse has moved
       if (mousePosition.x > 0 && mousePosition.y > 0) {
         ctx.beginPath();
         ctx.arc(mousePosition.x, mousePosition.y, 60, 0, Math.PI * 2);
@@ -243,7 +230,6 @@ const Help = () => {
     
     animate();
     
-    // Handle resize
     const handleResize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -251,7 +237,6 @@ const Help = () => {
     
     window.addEventListener('resize', handleResize);
     
-    // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
       if (animationFrameRef.current) {
@@ -260,7 +245,6 @@ const Help = () => {
     };
   }, []);
   
-  // Animate light effects
   useEffect(() => {
     const animateStars = () => {
       const stars = document.querySelectorAll('.star-effect');
