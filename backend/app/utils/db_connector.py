@@ -1,6 +1,6 @@
 # /backend/utils/db_connector.py
 from pymongo import MongoClient
-from backend.config import Config
+from  config import Config
 
 MONGODB_URI = Config.MONGODB_URI
 def get_db_connection():

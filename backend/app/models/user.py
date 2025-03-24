@@ -1,8 +1,11 @@
-from backend.app.db import db
+# app/models/user.py
+from app.db import db
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 class User(db.Model):
+    __tablename__ = 'users'
+    
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -12,9 +15,10 @@ class User(db.Model):
     profile_picture = db.Column(db.String(256), default=None)
     last_login = db.Column(db.DateTime, default=None)
     
-    # Relationships
-    subscription = db.relationship('Subscription', backref='user', uselist=False)
-    betting_stats = db.relationship('BettingStats', backref='user', uselist=False)
+    # Use string-based relationships to avoid circular imports
+    subscription = db.relationship('Subscription', back_populates='user', uselist=False)
+    betting_stats = db.relationship('BettingStats', back_populates='user', uselist=False)
+    bets = db.relationship('Bet', back_populates='user')
     
     def __init__(self, username, email, name, password):
         self.username = username
@@ -38,22 +42,4 @@ class User(db.Model):
             'profile_picture': self.profile_picture,
             'subscription': self.subscription.to_dict() if self.subscription else None,
             'betting_stats': self.betting_stats.to_dict() if self.betting_stats else None
-        }
-
-# Add the Subscription class definition here
-class Subscription(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    plan = db.Column(db.String(50), nullable=False)
-    start_date = db.Column(db.DateTime, default=datetime.utcnow)
-    end_date = db.Column(db.DateTime)
-    is_active = db.Column(db.Boolean, default=True)
-    
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'plan': self.plan,
-            'start_date': self.start_date.isoformat(),
-            'end_date': self.end_date.isoformat() if self.end_date else None,
-            'is_active': self.is_active
         }

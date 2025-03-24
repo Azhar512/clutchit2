@@ -3,8 +3,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
 import os
-from backend.config import Config
-from backend.app.db import db
+from  config import Config
+from  app.db import db
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -22,11 +22,11 @@ def create_app(config_class=Config):
     CORS(app)
     
     # Register blueprints
-    from backend.app.Routes.auth_routes import auth_bp
-    from backend.app.Routes.bets import bp as bets_bp
-    from backend.app.Routes.marketplace_routes import marketplace_bp
-    from backend.app.Routes.predictions import predictions_bp
-    from backend.app.Routes.users import users_bp
+    from  app.Routes.auth_routes import auth_bp
+    from  app.Routes.bets import bp as bets_bp
+    from  app.Routes.marketplace_routes import marketplace_bp
+    from  app.Routes.predictions import predictions_bp
+    from  app.Routes.users import users_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(bets_bp, url_prefix='/api/bets')

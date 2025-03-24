@@ -7,7 +7,7 @@ import os
 
 load_dotenv()
 
-from backend.config import Config
+from config import Config
 db = SQLAlchemy()
 jwt = JWTManager()
 
@@ -29,18 +29,28 @@ def create_app():
     jwt.init_app(app)
     CORS(app)  
 
+    # Import all models explicitly to ensure they are registered
+    from app.models.user import User
+    from app.models.Prediction import Prediction
+    from app.models.bet import Bet, BetLeg
+    from app.models.betting_stats import BettingStats
+    from app.models.subscription import Subscription
+
+    from app.models.bankroll import Bankroll
+    # Add any other models you have
+
     # Register all blueprints
-    from backend.app.api.upload import upload_bp
-    from backend.app.utils.error_handlers import register_error_handlers
-    from backend.app.Routes.leaderboard_routes import leaderboard_routes
-    from backend.app.Routes.bankroll_routes import bankroll_bp
-    from backend.app.Routes.auth_routes import auth_bp
-    from backend.app.Routes.marketplace_routes import marketplace_bp
-    from backend.app.Routes.help import help_bp
-    from backend.app.Routes.dashboard_routes import dashboard_bp
-    from backend.app.Routes.profile_routes import profile_bp
-    from backend.app.Routes.subscription_routes import subscription_bp
-    from backend.app.Routes.bets import bets_bp
+    from app.api.upload import upload_bp
+    from app.utils.error_handlers import register_error_handlers
+    from app.Routes.leaderboard_routes import leaderboard_routes
+    from app.Routes.bankroll_routes import bankroll_bp
+    from app.Routes.auth_routes import auth_bp
+    from app.Routes.marketplace_routes import marketplace_bp
+    from app.Routes.help import help_bp
+    from app.Routes.dashboard_routes import dashboard_bp
+    from app.Routes.profile_routes import profile_bp
+    from app.Routes.subscription_routes import subscription_bp
+    from app.Routes.bets import bp
 
     app.register_blueprint(upload_bp, url_prefix='/api/upload')
     app.register_blueprint(leaderboard_routes)
@@ -48,7 +58,7 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(profile_bp, url_prefix='/api/profile')
     app.register_blueprint(subscription_bp, url_prefix='/api/subscription')
-    app.register_blueprint(bets_bp, url_prefix='/api/bets')
+    app.register_blueprint(bp, url_prefix='/api/bets')
     app.register_blueprint(marketplace_bp)
     app.register_blueprint(help_bp)
     app.register_blueprint(dashboard_bp)

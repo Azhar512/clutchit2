@@ -4,10 +4,10 @@ from datetime import datetime
 import re
 
 # Import models
-from backend.app.models.user import User
-from backend.app.models.betting_stats import BettingStats
-from backend.app.models.subscription import Subscription
-from backend.app import db
+from  app.models.user import User
+from  app.models.betting_stats import BettingStats
+from  app.models.subscription import Subscription
+from  app import db
 
 profile_bp = Blueprint('profile', __name__, url_prefix='/api/profile')
 

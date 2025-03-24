@@ -6,48 +6,6 @@ class OCRService:
     """Service for processing betting slip images using OCR"""
     
     @staticmethod
-    def process_image(image_url):
-        """
-        Process an image using Google Cloud Vision OCR
-        Extract text and betting information
-        """
-        client = vision.ImageAnnotatorClient()
-        
-        # Download image from GCS or process directly from URL
-        if image_url.startswith('gs://'):
-            image = vision.Image()
-            image.source.image_uri = image_url
-        else:
-            # For testing with local files or other sources
-            with io.open(image_url, 'rb') as image_file:
-                content = image_file.read()
-            image = vision.Image(content=content)
-        
-        # Perform OCR
-        response = client.text_detection(image=image)
-        texts = response.text_annotations
-        
-        if not texts:
-            return {'success': False, 'text': '', 'message': 'No text detected in image'}
-        
-        # Full text from the image
-        full_text = texts[0].description
-        
-        # Basic extraction of betting information
-        bet_info = {
-            'text': full_text,
-            'success': True
-        }
-        
-        # Common patterns in betting slips
-        bet_info['teams'] = OCRService.extract_teams(full_text)
-        bet_info['odds'] = OCRService.extract_odds(full_text)
-        bet_info['amount'] = OCRService.extract_amount(full_text)
-        bet_info['bet_type'] = OCRService.identify_bet_type(full_text)
-        
-        return bet_info
-
-    @staticmethod
     def extract_teams(text):
         """Extract team names from betting slip text"""
         # This is a simplified version - would be more complex in production
@@ -113,3 +71,44 @@ class OCRService:
             return 'Prop'
         
         return 'Unknown'
+
+def process_image(image_url):
+    """
+    Process an image using Google Cloud Vision OCR
+    Extract text and betting information
+    """
+    client = vision.ImageAnnotatorClient()
+    
+    # Download image from GCS or process directly from URL
+    if image_url.startswith('gs://'):
+        image = vision.Image()
+        image.source.image_uri = image_url
+    else:
+        # For testing with local files or other sources
+        with io.open(image_url, 'rb') as image_file:
+            content = image_file.read()
+        image = vision.Image(content=content)
+    
+    # Perform OCR
+    response = client.text_detection(image=image)
+    texts = response.text_annotations
+    
+    if not texts:
+        return {'success': False, 'text': '', 'message': 'No text detected in image'}
+    
+    # Full text from the image
+    full_text = texts[0].description
+    
+    # Basic extraction of betting information
+    bet_info = {
+        'text': full_text,
+        'success': True
+    }
+    
+    # Common patterns in betting slips
+    bet_info['teams'] = OCRService.extract_teams(full_text)
+    bet_info['odds'] = OCRService.extract_odds(full_text)
+    bet_info['amount'] = OCRService.extract_amount(full_text)
+    bet_info['bet_type'] = OCRService.identify_bet_type(full_text)
+    
+    return bet_info

@@ -1,7 +1,7 @@
 from flask import request, jsonify, g
 from functools import wraps
 import jwt
-from backend.config import Config
+from  config import Config
 
 JWT_SECRET_KEY = Config.JWT_SECRET_KEY
 
@@ -75,7 +75,7 @@ def admin_required(f):
         
         # Here you would check if the user is an admin
         # For example, using your User model
-        from backend.app.models.user import User
+        from  app.models.user import User
         user = User.get_by_id(g.user_id)
         
         if not user or not user.is_admin:

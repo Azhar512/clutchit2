@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
-from backend.app.services.bankroll_service import BankrollService
-from backend.app.utils.auth_middleware import token_required, get_user_id_from_token
-from backend.app.models.bankroll import Bankroll
+from app.services.bankroll_service import BankrollService
+from app.utils.auth_middleware import token_required, get_user_id_from_token
+from app.models.bankroll import Bankroll
 
 # Create blueprint
 bankroll_bp = Blueprint('bankroll', __name__)

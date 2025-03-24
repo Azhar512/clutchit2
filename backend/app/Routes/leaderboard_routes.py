@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_cors import cross_origin
-from backend.app.services.leaderboard_service import LeaderboardService
-from backend.app.utils.auth_middleware import token_required
+from  app.services.leaderboard_service import LeaderboardService
+from  app.utils.auth_middleware import token_required
 
 leaderboard_routes = Blueprint('leaderboard_routes', __name__)
 leaderboard_service = LeaderboardService()

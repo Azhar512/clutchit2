@@ -3,11 +3,11 @@ from datetime import datetime, timedelta
 from sqlalchemy import func, and_, or_
 import pandas as pd
 
-from backend.app.models.bet import Bet
-from backend.app.models.user_model import User
-from backend.app.models.subscription import Subscription
-from backend.app.models.leaderboard_model import LeaderboardEntry
-from backend.app.services.bet_service import BetService
+from  app.models.bet import Bet
+from  app.models.user import User
+from  app.models.subscription import Subscription
+from  app.models.leaderboard_model import LeaderboardEntry
+from  app.services.bet_service import BetService
 
 class DashboardService:
     @staticmethod

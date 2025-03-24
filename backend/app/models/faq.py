@@ -1,6 +1,6 @@
 # File: app/models/faq.py
 
-from backend.app.db import db
+from  app.db import db
 from datetime import datetime
 
 class FAQCategory(db.Model):

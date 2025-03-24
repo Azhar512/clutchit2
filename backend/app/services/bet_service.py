@@ -5,10 +5,10 @@ import uuid
 from flask import request, jsonify
 from werkzeug.utils import secure_filename
 
-from backend.app.models import db
-from backend.app.models.bet import Bet, BetLeg, BetStatus
-from backend.app.models.bankroll import Bankroll
-from backend.app.utils.db_connector import get_db_connection
+from  app.models import db
+from  app.models.bet import Bet, BetLeg, BetStatus
+from  app.models.bankroll import Bankroll
+from  app.utils.db_connector import get_db_connection
 
 class BetService:
     def __init__(self):

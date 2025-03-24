@@ -1,7 +1,7 @@
 from flask import jsonify
-from backend.app.models.marketplace import Pick, FeaturedPick, Category
-from backend.app.models.user_model import User
-from backend.app.models.subscription import Subscription
+from  app.models.marketplace import Pick, FeaturedPick, Category
+from app.models.user import User
+from  app.models.subscription import Subscription
 from sqlalchemy import desc
 import datetime
 

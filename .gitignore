@@ -30,3 +30,8 @@ dist/
 
 # Firebase Key
 backend/firebase-key.json
+
+backend/nenv/
+**/nenv/
+venv/
+env/

@@ -4,13 +4,13 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 import uuid
 import datetime
 from werkzeug.utils import secure_filename
-from backend.app.services.storage_service import upload_file_to_gcs, delete_file_from_gcs
-from backend.app.services.ocr_service import process_image
-from backend.app.services.nlp_service import process_text
-from backend.app.services.ai_service import predict_bet
-from backend.app.utils.validators import validate_image, validate_text_input
-from backend.app.utils.subscription import check_upload_limit
-from backend.app.models.bet import create_bet
+from  app.services.storage_service import upload_file_to_gcs, delete_file_from_gcs
+from  app.services.ocr_service import process_image
+from  app.services.nlp_service import process_text
+from  app.services.ai_service import predict_bet
+from  app.utils.validators import validate_image, validate_text_input
+from  app.utils.subscription import check_upload_limit
+from  app.models.bet import create_bet
 
 upload_bp = Blueprint('upload', __name__)
 

@@ -2,7 +2,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from backend.app.services.dashboard_service import DashboardService
+from  app.services.dashboard_service import DashboardService
 
 dashboard_bp = Blueprint('dashboard', __name__)
 

@@ -2,8 +2,8 @@
 # services/ai_service.py (AI model predictions)
 
 import numpy as np
-from backend.app.ml.BetPredictionModel import BetPredictionModel
-from backend.app.ml.evaluation import calculate_ev  
+from  app.ml.BetPredictionModel import BetPredictionModel
+from  app.ml.evaluation import calculate_ev  
 
 # Initialize the model (in production, this would be loaded once at startup)
 bet_model = BetPredictionModel()

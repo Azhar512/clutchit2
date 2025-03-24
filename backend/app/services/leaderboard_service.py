@@ -1,10 +1,11 @@
 from ..models.leaderboard_model import LeaderboardModel
-from ..models.user_model import UserModel
+from ..models.user import User
+from app.db import db
 
 class LeaderboardService:
     def __init__(self):
-        self.leaderboard_model = LeaderboardModel()
-        self.user_model = UserModel()
+        self.leaderboard_model = LeaderboardModel
+        self.user_model = User
     
     def get_top_performers(self, limit=5):
         """
@@ -22,17 +23,18 @@ class LeaderboardService:
         # Process and format the data
         leaders = []
         for i, leader in enumerate(raw_leaders):
-            user_data = self.user_model.get_user_by_id(leader['user_id'])
+            user = self.user_model.query.get(leader['user_id'])
             
-            leaders.append({
-                'rank': i + 1,
-                'userId': leader['user_id'],
-                'username': user_data['username'],
-                'winRate': f"{leader['win_rate']}%",
-                'profit': float(leader['profit']),  # Convert Decimal to float for JSON serialization
-                'streak': leader['current_streak'],
-                'profileImage': user_data.get('profile_image', None)
-            })
+            if user:
+                leaders.append({
+                    'rank': i + 1,
+                    'userId': leader['user_id'],
+                    'username': user.username,
+                    'winRate': f"{leader['win_rate']}%",
+                    'profit': float(leader['profit']),  # Convert Decimal to float for JSON serialization
+                    'streak': leader['current_streak'],
+                    'profileImage': user.profile_picture
+                })
             
         return leaders
     
@@ -46,11 +48,11 @@ class LeaderboardService:
         Returns:
             dict: User's ranking and stats
         """
-        # Get user's ranking
-        ranking = self.leaderboard_model.get_user_ranking(user_id)
+        # Get user
+        user = self.user_model.query.get(user_id)
         
         # If user not found, return default values
-        if ranking is None:
+        if user is None:
             return {
                 'rank': 'N/A',
                 'userId': user_id,
@@ -62,8 +64,8 @@ class LeaderboardService:
                 'profileImage': None
             }
         
-        # Get user data
-        user_data = self.user_model.get_user_by_id(user_id)
+        # Get user's ranking
+        ranking = self.leaderboard_model.get_user_ranking(user_id)
         
         # Get user stats
         stats = self.leaderboard_model.get_user_stats(user_id)
@@ -74,10 +76,10 @@ class LeaderboardService:
         return {
             'rank': ranking,
             'userId': user_id,
-            'username': user_data['username'],
+            'username': user.username,
             'winRate': f"{stats['win_rate']}%",
             'profit': float(stats['profit']),  # Convert Decimal to float for JSON serialization
             'streak': stats['current_streak'],
             'percentile': f"Top {percentile}% of users",
-            'profileImage': user_data.get('profile_image', None)
+            'profileImage': user.profile_picture
         }

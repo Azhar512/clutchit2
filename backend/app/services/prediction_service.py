@@ -1,5 +1,5 @@
-from backend.app.ml.model import load_model, predict
-from backend.app.services.sentiment_analysis import analyze_sentiment
+from  app.ml.model import load_model, predict
+from  app.services.sentiment_analysis import analyze_sentiment
 import numpy as np
 
 def predict_outcome(bet_data, reddit_data=None):
