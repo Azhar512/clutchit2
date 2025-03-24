@@ -17,47 +17,37 @@ class BetService:
     def upload_bet_slip(self, user_id):
         """Handle bet slip upload from frontend"""
         try:
-            # Check if image file is provided
             if 'file' not in request.files:
                 return jsonify({"error": "No file part"}), 400
                 
             file = request.files['file']
             
-            # If user does not select file
             if file.filename == '':
                 return jsonify({"error": "No selected file"}), 400
                 
-            # Check file extension
             allowed_extensions = {'png', 'jpg', 'jpeg', 'pdf'}
             if not self._allowed_file(file.filename, allowed_extensions):
                 return jsonify({"error": "File type not allowed"}), 400
                 
-            # Create unique filename
             filename = secure_filename(file.filename)
             unique_filename = f"{uuid.uuid4()}_{filename}"
             
-            # Define upload folder path
             upload_folder = os.path.join(os.getcwd(), 'app', 'static', 'uploads', 'bet_slips')
             
-            # Ensure directory exists
             os.makedirs(upload_folder, exist_ok=True)
             
-            # Save the file
             file_path = os.path.join(upload_folder, unique_filename)
             file.save(file_path)
             
-            # Store file information in database
             bet_data = {
                 'user_id': user_id,
                 'slip_image_path': f'/static/uploads/bet_slips/{unique_filename}',
                 'upload_date': datetime.now(),
-                'status': 'pending_analysis'  # Initial status
+                'status': 'pending_analysis'  
             }
             
-            # Insert record into bets table
             bet_id = self._insert_bet(bet_data)
             
-            # Return success response
             return jsonify({
                 "success": True,
                 "message": "Bet slip uploaded successfully",
@@ -75,7 +65,6 @@ class BetService:
                
     def _insert_bet(self, bet_data):
         """Insert bet record into database"""
-        # Implement database insert logic here based on your db_connector
         cursor = self.db.cursor()
         query = """
         INSERT INTO bets (user_id, slip_image_path, upload_date, status)
@@ -108,8 +97,7 @@ def calculate_ev(win_probability, odds):
     if win_probability <= 0 or win_probability >= 1:
         return 0
     
-    # EV = (Probability of Win × Potential Profit) - (Probability of Loss × Stake)
-    potential_profit = odds - 1  # Potential profit on a $1 stake
+    potential_profit = odds - 1  
     probability_loss = 1 - win_probability
     
     ev = (win_probability * potential_profit) - (probability_loss * 1)
@@ -141,12 +129,10 @@ def get_bets_with_ev(user_id=None, limit=None, offset=0, sport_type=None, min_ev
     """
     query = db.session.query(Bet)
     
-    # Apply filters
     if user_id:
         query = query.filter(Bet.user_id == user_id)
     
     if sport_type:
-        # Join with BetLeg to filter by sport_type
         query = query.join(BetLeg).filter(BetLeg.sport_type == sport_type)
     
     if min_ev is not None:
@@ -164,23 +150,19 @@ def get_bets_with_ev(user_id=None, limit=None, offset=0, sport_type=None, min_ev
     if bet_status:
         query = query.filter(Bet.status == bet_status)
     
-    # Apply sorting
     if sort_order.lower() == 'asc':
         query = query.order_by(getattr(Bet, sort_by).asc())
     else:
         query = query.order_by(getattr(Bet, sort_by).desc())
     
-    # Apply pagination
     if limit:
         query = query.limit(limit)
     
     if offset:
         query = query.offset(offset)
     
-    # Execute query
     bets = query.all()
     
-    # Format results
     result = []
     for bet in bets:
         bet_data = {
@@ -197,7 +179,6 @@ def get_bets_with_ev(user_id=None, limit=None, offset=0, sport_type=None, min_ev
             'legs': []
         }
         
-        # Add bet legs if available
         for leg in bet.legs:
             leg_data = {
                 'id': leg.id,
@@ -242,41 +223,31 @@ def get_parlay_recommendations(user_id, max_legs=3, min_leg_ev=0.05):
     Returns:
         list: List of recommended parlays
     """
-    # Get user bankroll for potential wager calculations
     bankroll = db.session.query(Bankroll).filter(Bankroll.user_id == user_id).first()
     
     if not bankroll:
         return []
     
-    # Get high EV bets
     high_ev_bets = get_bets_with_ev(min_ev=min_leg_ev, bet_status=BetStatus.PENDING, 
                                     limit=20, sort_by="expected_value", sort_order="desc")
     
     if len(high_ev_bets) < 2:
         return []
     
-    # Generate combinations of bets for parlays
     parlays = []
     
-    # Simple approach: take top N highest EV bets
-    # In a real implementation, you might want to use a more sophisticated algorithm
-    # that considers correlations between bets, sport diversity, etc.
     
     for i in range(2, min(max_legs + 1, len(high_ev_bets) + 1)):
         top_bets = high_ev_bets[:i]
         
-        # Calculate combined odds and EV
         combined_odds = 1
         for bet in top_bets:
             combined_odds *= bet['odds']
         
-        # Simplified parlay win probability (in reality, this would be more complex)
         win_probability = np.prod([bet['win_probability'] for bet in top_bets])
         
-        # Calculate EV for the parlay
         parlay_ev = calculate_ev(win_probability, combined_odds)
         
-        # Calculate recommended wager based on Kelly Criterion
         kelly_stake = kelly_criterion(win_probability, combined_odds)
         recommended_wager = round(kelly_stake * bankroll.current_amount, 2)
         
@@ -362,14 +333,11 @@ def kelly_criterion(win_probability, odds):
     if win_probability <= 0 or win_probability >= 1:
         return 0
     
-    # Kelly formula: f* = (bp - q) / b
-    # where f* is stake fraction, b is odds-1, p is win probability, q is loss probability
     b = odds - 1
     q = 1 - win_probability
     
     kelly = (b * win_probability - q) / b
     
-    # Apply a fractional Kelly (half-Kelly) to be more conservative
     kelly = max(0, kelly) * 0.5
     
     return kelly

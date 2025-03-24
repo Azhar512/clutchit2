@@ -21,14 +21,11 @@ class BankrollService:
         if win_probability <= 0 or win_probability >= 1:
             return 0
             
-        # Kelly formula: f* = (bp - q) / b
-        # where f* is stake fraction, b is odds-1, p is win probability, q is loss probability
         b = odds - 1
         q = 1 - win_probability
         
         kelly = (b * win_probability - q) / b
         
-        # Clamp between 0 and 1
         return max(0, min(kelly, 1))
     
     @staticmethod
@@ -43,9 +40,9 @@ class BankrollService:
             float: Risk factor multiplier for Kelly criterion
         """
         risk_factors = {
-            'low': 0.25,     # Conservative: 1/4 Kelly
-            'medium': 0.5,   # Moderate: 1/2 Kelly
-            'high': 1.0      # Aggressive: Full Kelly
+            'low': 0.25,     
+            'medium': 0.5,   
+            'high': 1.0     
         }
         return risk_factors.get(risk_profile, 0.5)
     
@@ -61,59 +58,46 @@ class BankrollService:
         Returns:
             dict: Recommended wagers and projection data
         """
-        # Get user's bankroll info
         bankroll = Bankroll.query.filter_by(user_id=user_id).first()
         if not bankroll:
             return {"error": "Bankroll not set up for this user"}
         
-        # Get top EV bets for the user based on subscription tier
         bets_with_ev = get_bets_with_ev(user_id)
         
-        # Initialize results
         daily_wagers = []
         cumulative_profit = 0
         current_bankroll = bankroll.current_amount
         risk_factor = BankrollService.get_risk_factor(bankroll.risk_profile)
         
-        # Get today's date
         today = datetime.now().date()
         
-        # Clear existing future recommendations
         WagerRecommendation.query.filter(
             WagerRecommendation.bankroll_id == bankroll.id,
             WagerRecommendation.date >= today
         ).delete()
         
-        # Calculate daily recommendations
         for day in range(days_projection):
             projection_date = today + timedelta(days=day)
             
-            # If we have specific bets with EV for this day, use them
-            # Otherwise use average EV from available bets
             if day < len(bets_with_ev):
                 bet = bets_with_ev[day]
-                win_prob = (bet['implied_probability'] + 0.5) / 2  # Adjusted for EV
+                win_prob = (bet['implied_probability'] + 0.5) / 2 
                 odds = bet['odds']
                 bet_id = bet['id']
             else:
-                # Use average values from available bets if we've run out of specific bets
                 avg_win_prob = sum([b['implied_probability'] for b in bets_with_ev]) / len(bets_with_ev) if bets_with_ev else 0.55
                 avg_odds = sum([b['odds'] for b in bets_with_ev]) / len(bets_with_ev) if bets_with_ev else 2.0
                 win_prob = avg_win_prob
                 odds = avg_odds
                 bet_id = None
             
-            # Calculate Kelly stake and adjust by risk preference
             kelly_stake = BankrollService.kelly_criterion(win_prob, odds)
             recommended_stake = kelly_stake * risk_factor
             
-            # Calculate wager amount for today
             wager_amount = current_bankroll * recommended_stake
             
-            # Simulate expected daily profit
             expected_profit = wager_amount * (odds - 1) * win_prob - wager_amount * (1 - win_prob)
             
-            # Create recommendation record
             recommendation = WagerRecommendation(
                 bankroll_id=bankroll.id,
                 date=projection_date,
@@ -123,11 +107,9 @@ class BankrollService:
             )
             db.session.add(recommendation)
             
-            # Update running totals for projection
             cumulative_profit += expected_profit
             current_bankroll += expected_profit
             
-            # Store for response
             daily_wagers.append({
                 'date': projection_date.isoformat(),
                 'recommended_wager': round(wager_amount, 2),
@@ -136,13 +118,11 @@ class BankrollService:
                 'projected_bankroll': round(bankroll.current_amount + cumulative_profit, 2),
             })
             
-            # Check if target has been reached
             if cumulative_profit >= bankroll.target_profit:
                 break
         
         db.session.commit()
         
-        # Calculate estimated days to target
         daily_avg_profit = cumulative_profit / len(daily_wagers) if daily_wagers else 0
         days_to_target = int(bankroll.target_profit / daily_avg_profit) if daily_avg_profit > 0 else float('inf')
         
@@ -169,7 +149,6 @@ class BankrollService:
         Returns:
             dict: Updated bankroll information
         """
-        # Validate input
         if current_amount <= 0:
             return {"error": "Current amount must be positive"}
         if target_profit <= 0:
@@ -177,10 +156,8 @@ class BankrollService:
         if risk_profile not in ['low', 'medium', 'high']:
             return {"error": "Risk profile must be 'low', 'medium', or 'high'"}
         
-        # Get existing bankroll or create new one
         bankroll = Bankroll.query.filter_by(user_id=user_id).first()
         if bankroll:
-            # Create history record before updating
             history = BankrollHistory(
                 bankroll_id=bankroll.id,
                 amount=bankroll.current_amount,
@@ -188,12 +165,10 @@ class BankrollService:
             )
             db.session.add(history)
             
-            # Update existing bankroll
             bankroll.current_amount = current_amount
             bankroll.target_profit = target_profit
             bankroll.risk_profile = risk_profile
         else:
-            # Create new bankroll
             bankroll = Bankroll(
                 user_id=user_id,
                 current_amount=current_amount,
@@ -204,7 +179,6 @@ class BankrollService:
         
         db.session.commit()
         
-        # Return updated data with recommendations
         recommendations = BankrollService.calculate_wager_recommendations(user_id)
         return {
             'bankroll': bankroll.to_dict(),
