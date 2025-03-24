@@ -2,39 +2,34 @@ import React from "react";
 import { useState, useRef, useEffect } from 'react';
 import { Card, CardHeader, CardContent, CardTitle } from "../components/ui/card";
 import { ShoppingCart, Star, Award, Users, TrendingUp, ChevronRight } from 'lucide-react';
-import axios from 'axios'; // Make sure axios is installed
+import axios from 'axios'; 
 
 const Marketplace = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const canvasRef = useRef(null);
   const animationFrameRef = useRef(null);
   
-  // State for data from backend
   const [featuredPicks, setFeaturedPicks] = useState([]);
   const [clutchPicks, setClutchPicks] = useState([]);
   const [trendingCategories, setTrendingCategories] = useState(['NBA', 'NFL', 'MLB', 'UFC']);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // Fetch data from backend
   useEffect(() => {
     const fetchMarketplaceData = async () => {
       try {
         setLoading(true);
         
-        // Fetch featured picks
         const featuredResponse = await axios.get('/api/marketplace/featured');
         if (featuredResponse.data.success) {
           setFeaturedPicks(featuredResponse.data.data);
         }
         
-        // Fetch clutch picks
         const clutchResponse = await axios.get('/api/marketplace/clutch-picks');
         if (clutchResponse.data.success) {
           setClutchPicks(clutchResponse.data.data);
         }
         
-        // Fetch trending categories
         const categoriesResponse = await axios.get('/api/marketplace/trending-categories');
         if (categoriesResponse.data.success && categoriesResponse.data.data.length > 0) {
           setTrendingCategories(categoriesResponse.data.data.map(cat => cat.name));
@@ -46,7 +41,6 @@ const Marketplace = () => {
         setError('Failed to load marketplace data. Please try again later.');
         setLoading(false);
         
-        // Use sample data as fallback
         setFeaturedPicks([
           {
             title: "Ultimate Parlay Bundle",
@@ -116,13 +110,10 @@ const Marketplace = () => {
     fetchMarketplaceData();
   }, []);
   
-  // Handle purchase click
   const handlePurchase = async (pickId) => {
     try {
-      // Check if user is logged in
       const token = localStorage.getItem('auth_token');
       if (!token) {
-        // Redirect to login or show login modal
         alert('Please log in to purchase picks');
         return;
       }
@@ -134,7 +125,6 @@ const Marketplace = () => {
       
       if (response.data.success) {
         alert('Pick purchased successfully!');
-        // Optional: Update UI to show purchase was successful
       } else {
         alert(response.data.message || 'Purchase failed. Please try again.');
       }
@@ -144,7 +134,6 @@ const Marketplace = () => {
     }
   };
 
-  // Handle mouse movement for interactive light effects
   useEffect(() => {
     const handleMouseMove = (event) => {
       setMousePosition({
@@ -159,7 +148,6 @@ const Marketplace = () => {
     };
   }, []);
   
-  // Setup particle animation on canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -168,7 +156,6 @@ const Marketplace = () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     
-    // Particle class
     class Particle {
       constructor() {
         this.x = Math.random() * canvas.width;
@@ -182,10 +169,10 @@ const Marketplace = () => {
       
       getRandomColor() {
         const colors = [
-          'rgba(168, 85, 247, 0.4)',  // Purple
-          'rgba(139, 92, 246, 0.3)',  // Indigo
-          'rgba(79, 70, 229, 0.3)',   // Indigo darker
-          'rgba(191, 219, 254, 0.2)', // Light blue
+          'rgba(168, 85, 247, 0.4)',  
+          'rgba(139, 92, 246, 0.3)',  
+          'rgba(79, 70, 229, 0.3)',  
+          'rgba(191, 219, 254, 0.2)', 
         ];
         return colors[Math.floor(Math.random() * colors.length)];
       }
@@ -196,7 +183,6 @@ const Marketplace = () => {
         
         if (this.size > 0.2) this.size -= 0.01;
         
-        // Reset particle when it gets too small or goes off screen
         if (this.size <= 0.2 || 
             this.x < 0 || 
             this.x > canvas.width || 
@@ -219,7 +205,6 @@ const Marketplace = () => {
       }
     }
     
-    // Create particle array
     const particleArray = [];
     const particleCount = Math.min(100, window.innerWidth / 20);
     
@@ -227,7 +212,6 @@ const Marketplace = () => {
       particleArray.push(new Particle());
     }
     
-    // Draw wave background
     function drawWave(yOffset, amplitude, wavelength, color) {
       ctx.beginPath();
       ctx.moveTo(0, yOffset);
@@ -244,11 +228,9 @@ const Marketplace = () => {
       ctx.fill();
     }
     
-    // Animation loop
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      // Draw animated waves
       const time = Date.now() / 10000;
       drawWave(
         canvas.height * 0.85 + Math.sin(time) * 20, 
@@ -263,13 +245,11 @@ const Marketplace = () => {
         'rgba(109, 40, 217, 0.07)'
       );
       
-      // Update and draw particles
       particleArray.forEach(particle => {
         particle.update();
         particle.draw();
       });
       
-      // Draw mouse trail if mouse has moved
       if (mousePosition.x > 0 && mousePosition.y > 0) {
         ctx.beginPath();
         ctx.arc(mousePosition.x, mousePosition.y, 60, 0, Math.PI * 2);
@@ -292,7 +272,6 @@ const Marketplace = () => {
     
     animate();
     
-    // Handle resize
     const handleResize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -300,7 +279,6 @@ const Marketplace = () => {
     
     window.addEventListener('resize', handleResize);
     
-    // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
       if (animationFrameRef.current) {
@@ -309,7 +287,6 @@ const Marketplace = () => {
     };
   }, []);
   
-  // Animate light effects
   useEffect(() => {
     const animateStars = () => {
       const stars = document.querySelectorAll('.star-effect');
@@ -335,7 +312,6 @@ const Marketplace = () => {
     floatingElements();
   }, []);
 
-  // Show loading state
   if (loading) {
     return (
       <div className="marketplace-container flex items-center justify-center h-screen">
@@ -347,7 +323,6 @@ const Marketplace = () => {
     );
   }
   
-  // Show error state
   if (error) {
     return (
       <div className="marketplace-container flex items-center justify-center h-screen">
