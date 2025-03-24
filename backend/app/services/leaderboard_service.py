@@ -17,10 +17,8 @@ class LeaderboardService:
         Returns:
             list: List of top performers with their stats
         """
-        # Get raw data from the database
         raw_leaders = self.leaderboard_model.get_top_performers(limit)
         
-        # Process and format the data
         leaders = []
         for i, leader in enumerate(raw_leaders):
             user = self.user_model.query.get(leader['user_id'])
@@ -31,7 +29,7 @@ class LeaderboardService:
                     'userId': leader['user_id'],
                     'username': user.username,
                     'winRate': f"{leader['win_rate']}%",
-                    'profit': float(leader['profit']),  # Convert Decimal to float for JSON serialization
+                    'profit': float(leader['profit']), 
                     'streak': leader['current_streak'],
                     'profileImage': user.profile_picture
                 })
@@ -48,10 +46,8 @@ class LeaderboardService:
         Returns:
             dict: User's ranking and stats
         """
-        # Get user
         user = self.user_model.query.get(user_id)
         
-        # If user not found, return default values
         if user is None:
             return {
                 'rank': 'N/A',
@@ -64,13 +60,10 @@ class LeaderboardService:
                 'profileImage': None
             }
         
-        # Get user's ranking
         ranking = self.leaderboard_model.get_user_ranking(user_id)
         
-        # Get user stats
         stats = self.leaderboard_model.get_user_stats(user_id)
         
-        # Get percentile ranking
         percentile = self.leaderboard_model.get_user_percentile(user_id)
         
         return {
@@ -78,7 +71,7 @@ class LeaderboardService:
             'userId': user_id,
             'username': user.username,
             'winRate': f"{stats['win_rate']}%",
-            'profit': float(stats['profit']),  # Convert Decimal to float for JSON serialization
+            'profit': float(stats['profit']),  
             'streak': stats['current_streak'],
             'percentile': f"Top {percentile}% of users",
             'profileImage': user.profile_picture
