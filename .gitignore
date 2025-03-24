@@ -35,3 +35,7 @@ backend/nenv/
 **/nenv/
 venv/
 env/
+
+.env
+*.env
+**/*.env
