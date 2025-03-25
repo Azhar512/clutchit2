@@ -18,7 +18,7 @@ def create_app():
     app = Flask(__name__, static_folder=static_folder, static_url_path='')
     app.config.from_object(Config)
 
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URI", "sqlite:///clutch_app.db")
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URI", "sqlite:///postgres.db")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "dev-secret-key")
