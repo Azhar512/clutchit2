@@ -8,7 +8,7 @@ class Config:
     DEBUG = os.environ.get('DEBUG', 'False') == 'True'
     PORT = int(os.environ.get('PORT', 5000))
     
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///clutch_it.db'
+    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:2020266@localhost:5433/postgres'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     GCP_PROJECT_ID = os.environ.get('GCP_PROJECT_ID', 'clutch-app-project')
