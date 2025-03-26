@@ -7,7 +7,7 @@ import {
   ArrowUpRight, ArrowDownRight 
 } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
-import axios from 'axios'; // Make sure to install axios
+import axios from '../config/axiosConfig';
 
 const Dashboard = () => {
   // State management for UI effects
@@ -22,64 +22,34 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch dashboard data from backend
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        
-        // Get user profile and metrics
-        const metricsResponse = await axios.get('/api/user/metrics');
-        
-        // Format metrics data for UI
-        const formattedMetrics = [
-          { 
-            title: "Win Rate",
-            value: `${metricsResponse.data.winRate}%`,
-            trend: metricsResponse.data.winRateTrend,
-            icon: TrendingUp,
-          },
-          {
-            title: "Total Profit",
-            value: `$${metricsResponse.data.totalProfit.toLocaleString()}`,
-            trend: metricsResponse.data.profitTrend,
-            icon: DollarSign,
-          },
-          {
-            title: "Clutch Picks",
-            value: metricsResponse.data.clutchPicks.toString(),
-            trend: metricsResponse.data.clutchPicksTrend,
-            icon: Award,
-          },
-          {
-            title: "Following",
-            value: metricsResponse.data.followers.toString(),
-            trend: metricsResponse.data.followersTrend,
-            icon: Users,
-          }
-        ];
-        
-        setMetrics(formattedMetrics);
-        
-        // Get performance history data for chart
-        const performanceResponse = await axios.get('/api/user/performance');
-        setPerformanceData(performanceResponse.data.performanceHistory);
-        
-        // Get recent activity
-        const activityResponse = await axios.get('/api/user/activity');
-        setRecentActivity(activityResponse.data.recentActivity);
-        
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching dashboard data:", err);
-        setError("Failed to load dashboard data. Please try again.");
-        setLoading(false);
-      }
-    };
-    
-    fetchDashboardData();
-  }, []);
-
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      // Add more verbose logging
+      console.log('Attempting to fetch metrics...');
+      const metricsResponse = await axios.get('/api/user/metrics', {
+        headers: {
+          // If you're using JWT, include the Authorization header
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      console.log('Metrics response:', metricsResponse);
+      
+      // Similar modifications for other endpoints
+      const performanceResponse = await axios.get('/api/user/performance');
+      const activityResponse = await axios.get('/api/user/activity');
+      
+      // Rest of your existing code...
+    } catch (err) {
+      console.error("Full error details:", err);
+      console.error("Error response:", err.response);
+      console.error("Error message:", err.message);
+      
+      setError(err.response?.data?.error || "Failed to load dashboard data. Please try again.");
+      setLoading(false);
+    }
+  };
   // Handle mouse movement for interactive light effects
   useEffect(() => {
     const handleMouseMove = (event) => {

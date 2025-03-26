@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Trophy, Flame, Star, Crown, TrendingUp, ArrowUpRight } from 'lucide-react';
-import axios from 'axios';
+import axios from '../config/axiosConfig';
 
 const Leaderboard = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
