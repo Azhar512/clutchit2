@@ -3,7 +3,7 @@
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime, Float, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
-from  app.db import db
+from  app import db
 
 class Prediction(db.Model):
     __tablename__ = 'predictions'

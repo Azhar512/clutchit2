@@ -2,7 +2,7 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, Float, String, DateTime, ForeignKey, Boolean, Enum
 import enum
 from sqlalchemy.orm import relationship
-from app.db import db
+from app import db
 from sqlalchemy.exc import SQLAlchemyError
 
 class BetStatus(enum.Enum):

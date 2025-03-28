@@ -1,7 +1,7 @@
 
 # File: app/models/support_ticket.py
 
-from  app.db import db
+from  app import db
 from datetime import datetime
 
 class SupportTicket(db.Model):

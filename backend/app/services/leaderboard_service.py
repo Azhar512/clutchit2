@@ -1,6 +1,6 @@
 from ..models.leaderboard_model import LeaderboardModel
 from ..models.user import User
-from app.db import db
+from app import db
 
 class LeaderboardService:
     def __init__(self):

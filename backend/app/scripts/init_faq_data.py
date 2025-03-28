@@ -1,6 +1,6 @@
 # File: app/scripts/init_faq_data.py
 
-from backend.app.db import db
+from app import db
 from backend.app.models.faq import FAQCategory, FAQ
 
 def init_faq_categories():

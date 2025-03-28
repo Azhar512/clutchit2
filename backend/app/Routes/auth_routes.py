@@ -2,10 +2,9 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 from app.models.user import User
 from app.models.betting_stats import BettingStats
-from app import db
+from app import db  
 from datetime import datetime
 import re
-
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -34,9 +33,13 @@ def register():
     
     new_stats = BettingStats(user=new_user)
     
-    db.session.add(new_user)
-    db.session.add(new_stats)
-    db.session.commit()
+    try:
+        db.session.add(new_user)
+        db.session.add(new_stats)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Database error", "details": str(e)}), 500
     
     access_token = create_access_token(identity=new_user.id)
     refresh_token = create_refresh_token(identity=new_user.id)
@@ -47,6 +50,7 @@ def register():
         "access_token": access_token,
         "refresh_token": refresh_token
     }), 201
+
 
 @auth_bp.route('/login', methods=['POST'])
 def login():

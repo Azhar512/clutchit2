@@ -4,20 +4,30 @@ from flask_jwt_extended import JWTManager
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
+import click
+from flask.cli import FlaskGroup
 
+# Load environment variables
 load_dotenv()
 
 from config import Config
+
+# Create instances
 db = SQLAlchemy()
 jwt = JWTManager()
 
 def create_app():
     """Create and configure the Flask application."""
+    # Determine static folder path
     static_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), 'frontend', 'build'))
     
+    # Create Flask app
     app = Flask(__name__, static_folder=static_folder, static_url_path='')
+    
+    # Load configuration
     app.config.from_object(Config)
 
+    # Override or set specific configurations
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URI", "sqlite:///postgres.db")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
@@ -25,19 +35,17 @@ def create_app():
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = 3600  # 1 hour
     app.config["JWT_REFRESH_TOKEN_EXPIRES"] = 30 * 24 * 3600  # 30 days
 
+    # Initialize extensions
     db.init_app(app)
     jwt.init_app(app)
     CORS(app)  
 
     # Import all models explicitly to ensure they are registered
     from app.models.user import User
-    from app.models.Prediction import Prediction
     from app.models.bet import Bet, BetLeg
     from app.models.betting_stats import BettingStats
-    from app.models.subscription import Subscription
-
+    from app.models.Prediction import Prediction
     from app.models.bankroll import Bankroll
-    # Add any other models you have
 
     # Register all blueprints
     from app.api.upload import upload_bp
@@ -52,6 +60,7 @@ def create_app():
     from app.Routes.subscription_routes import subscription_bp
     from app.Routes.bets import bp
 
+    # Blueprint registration
     app.register_blueprint(upload_bp, url_prefix='/api/upload')
     app.register_blueprint(leaderboard_routes)
     app.register_blueprint(bankroll_bp, url_prefix='/api/bankroll')
@@ -63,8 +72,10 @@ def create_app():
     app.register_blueprint(help_bp)
     app.register_blueprint(dashboard_bp)
 
+    # Register error handlers
     register_error_handlers(app)
 
+    # Health check route
     @app.route('/api/health')
     def api_health():
         return {"status": "healthy", "message": "Clutch App API is running"}
@@ -78,11 +89,51 @@ def create_app():
         else:
             return send_from_directory(app.static_folder, 'index.html')
 
+    # Create database tables
     with app.app_context():
         db.create_all()
 
     return app
 
-if __name__ == '__main__':
+# Create a CLI group for additional commands
+@click.group(cls=FlaskGroup, create_app=create_app)
+def cli():
+    """Management script for the Wiki application."""
+    pass
+
+@cli.command("create-tables")
+def create_tables():
+    """Create database tables."""
     app = create_app()
-    app.run(debug=os.getenv("FLASK_DEBUG", "True") == "True", host='0.0.0.0', port=int(os.getenv("PORT", 5000)))
+    with app.app_context():
+        db.create_all()
+        click.echo("Database tables created successfully!")
+
+@cli.command("drop-tables")
+def drop_tables():
+    """Drop all database tables."""
+    app = create_app()
+    with app.app_context():
+        db.drop_all()
+        click.echo("All database tables dropped!")
+
+@cli.command("reset-database")
+def reset_database():
+    """Drop and recreate all database tables."""
+    app = create_app()
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+        click.echo("Database reset successfully!")
+
+if __name__ == '__main__':
+    # If run directly, start the Flask development server
+    app = create_app()
+    app.run(
+        debug=os.getenv("FLASK_DEBUG", "True") == "True", 
+        host='0.0.0.0', 
+        port=int(os.getenv("PORT", 5000))
+    )
+else:
+    # For WSGI servers or other deployment scenarios
+    application = create_app()

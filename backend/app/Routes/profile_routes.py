@@ -8,7 +8,7 @@ from  app.models.betting_stats import BettingStats
 from  app.models.subscription import Subscription
 from  app import db
 
-profile_bp = Blueprint('profile', __name__, url_prefix='/api/profile')
+profile_bp = Blueprint('profile', __name__)
 
 @profile_bp.route('/', methods=['GET'])
 @jwt_required()

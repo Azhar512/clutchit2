@@ -85,7 +85,7 @@ export const AuthProvider = ({ children }) => {
   // Login function
   const login = (userData, tokens) => {
     localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('accessToken', tokens.access_token);
+    localStorage.setItem('accessToken', tokens.access_token); 
     localStorage.setItem('refreshToken', tokens.refresh_token);
     
     axios.defaults.headers.common['Authorization'] = `Bearer ${tokens.access_token}`;

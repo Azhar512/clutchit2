@@ -5,6 +5,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Switch } from "../components/ui/switch";
 import { useToast } from "../components/ui/use-toast";
+import { useAuth } from "../components/auth/AuthWrapper";
 import axios from 'axios';
 
 const Profile = () => {
@@ -28,15 +29,16 @@ const Profile = () => {
 
   const fetchUserProfile = async () => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('accessToken');
       
       if (!token) {
-        throw new Error("Not authenticated");
+        throw new Error("No access token found");
       }
       
       const response = await axios.get(`${API_URL}/profile/`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       
@@ -44,22 +46,28 @@ const Profile = () => {
       setEditedProfile(response.data);
       setLoading(false);
     } catch (err) {
-      console.error("Error fetching profile:", err);
-      setError("Failed to load profile data");
-      setLoading(false);
+      console.error("Profile fetch error:", err);
       
-      if (err.response && err.response.status === 401) {
+      const status = err.response?.status;
+      const errorMessage = err.response?.data?.error || "Failed to load profile data";
+      
+      if (status === 401) {
+        // Clear tokens and redirect
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
         window.location.href = '/login';
       }
       
+      setError(errorMessage);
+      setLoading(false);
+      
       toast({
         title: "Error",
-        description: "Failed to load profile data. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     }
   };
-
   const updateProfile = async () => {
     try {
       const token = localStorage.getItem('access_token');

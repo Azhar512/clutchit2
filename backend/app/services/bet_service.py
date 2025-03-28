@@ -5,7 +5,7 @@ import uuid
 from flask import request, jsonify
 from werkzeug.utils import secure_filename
 
-from  app.models import db
+from  app import db
 from  app.models.bet import Bet, BetLeg, BetStatus
 from  app.models.bankroll import Bankroll
 from  app.utils.db_connector import get_db_connection

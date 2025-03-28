@@ -32,6 +32,6 @@ class Config:
     PREMIUM_UPLOADS_LIMIT = float('inf')  
     UNLIMITED_UPLOADS_LIMIT = float('inf')  
     
-    MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')
+
     
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'your_secret_key')

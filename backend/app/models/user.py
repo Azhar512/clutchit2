@@ -1,6 +1,11 @@
-from app.db import db
+from app import db
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+
+class SubscriptionType:
+    BASIC = 'Basic'
+    PREMIUM = 'Premium'
+    UNLIMITED = 'Unlimited'
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -14,7 +19,8 @@ class User(db.Model):
     profile_picture = db.Column(db.String(256), default=None)
     last_login = db.Column(db.DateTime, default=None)
     
-    subscription = db.relationship('Subscription', back_populates='user', uselist=False)
+    # Use 'subscriptions.Subscription' as a string to avoid circular imports
+    subscription = db.relationship('Subscription', back_populates='user', uselist=False, cascade='all, delete-orphan')
     betting_stats = db.relationship('BettingStats', back_populates='user', uselist=False)
     bets = db.relationship('Bet', back_populates='user')
     
@@ -31,13 +37,14 @@ class User(db.Model):
         return check_password_hash(self.password_hash, password)
     
     def to_dict(self):
-        return {
-            'id': self.id,
-            'username': self.username,
-            'email': self.email,
-            'name': self.name,
-            'created_at': self.created_at.isoformat(),
-            'profile_picture': self.profile_picture,
-            'subscription': self.subscription.to_dict() if self.subscription else None,
-            'betting_stats': self.betting_stats.to_dict() if self.betting_stats else None
-        }
+       return {
+        'id': self.id,
+        'username': self.username,
+        'email': self.email,
+        'name': self.name,
+        'created_at': self.created_at.isoformat() if self.created_at else None,
+        'profile_picture': self.profile_picture,
+        'subscription': self.subscription.to_dict() if self.subscription else None,
+        'betting_stats': self.betting_stats.to_dict() if self.betting_stats else None,
+        'last_login': self.last_login.isoformat() if self.last_login else None
+    }

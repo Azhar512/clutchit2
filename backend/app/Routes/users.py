@@ -2,7 +2,6 @@ from flask import Blueprint, request, jsonify
 from  app.models.user import User
 from  app.models.subscription import Subscription
 from  app import db
-
 users_bp = Blueprint('users', __name__)
 
 @users_bp.route('/profile/<int:user_id>', methods=['GET'])
