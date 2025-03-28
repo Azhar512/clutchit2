@@ -1,5 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, ProtectedRoute } from './components/auth/AuthWrapper';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './layouts/Layout';
 import Dashboard from './pages/Dashboard';
 import UploadBet from './pages/UploadBet';
@@ -16,100 +15,82 @@ import Signup from './pages/Signup';
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <ToastProvider>
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
+      <ToastProvider>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
 
-            {/* Default Route - Redirect to login if not authenticated */}
-            <Route path="/" element={<Navigate to="/login" />} />
+          {/* Default Route */}
+          <Route path="/" element={<Dashboard />} />
 
-            {/* Protected Routes */}
-            <Route 
-              path="/dashboard" 
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Dashboard />
-                  </Layout>
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/upload" 
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <UploadBet />
-                  </Layout>
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/marketplace" 
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Marketplace />
-                  </Layout>
-                </ProtectedRoute>
-              } 
-            />
-             <Route 
-              path="/Payments" 
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <PaymentMethodsPage />
-                  </Layout>
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/bankroll" 
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <BankrollManagement />
-                  </Layout>
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/leaderboard" 
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Leaderboard />
-                  </Layout>
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/profile" 
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Profile />
-                  </Layout>
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/help" 
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Help />
-                  </Layout>
-                </ProtectedRoute>
-              } 
-            />
-          </Routes>
-        </ToastProvider>
-      </AuthProvider>
+          {/* All Routes Now Accessible */}
+          <Route 
+            path="/dashboard" 
+            element={
+              <Layout>
+                <Dashboard />
+              </Layout>
+            } 
+          />
+          <Route 
+            path="/upload" 
+            element={
+              <Layout>
+                <UploadBet />
+              </Layout>
+            } 
+          />
+          <Route 
+            path="/marketplace" 
+            element={
+              <Layout>
+                <Marketplace />
+              </Layout>
+            } 
+          />
+          <Route 
+            path="/Payments" 
+            element={
+              <Layout>
+                <PaymentMethodsPage />
+              </Layout>
+            } 
+          />
+          <Route 
+            path="/bankroll" 
+            element={
+              <Layout>
+                <BankrollManagement />
+              </Layout>
+            } 
+          />
+          <Route 
+            path="/leaderboard" 
+            element={
+              <Layout>
+                <Leaderboard />
+              </Layout>
+            } 
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <Layout>
+                <Profile />
+              </Layout>
+            } 
+          />
+          <Route 
+            path="/help" 
+            element={
+              <Layout>
+                <Help />
+              </Layout>
+            } 
+          />
+        </Routes>
+      </ToastProvider>
     </Router>
   );
 }

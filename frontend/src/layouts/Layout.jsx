@@ -18,6 +18,8 @@ const Layout = ({ children }) => {
     { icon: Trophy, label: 'Leaderboard', path: '/leaderboard' },
     { icon: User, label: 'Profile', path: '/profile' },
     { icon: HelpCircle, label: 'Help', path: '/help' },
+    { icon: HelpCircle, label: 'Payments', path: '/payments' },
+
   ];
 
   // Handle mouse movement for interactive light effects
