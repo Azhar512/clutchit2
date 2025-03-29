@@ -1,6 +1,5 @@
 from flask import Flask, send_from_directory
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
 import os
 
@@ -8,42 +7,36 @@ import os
 load_dotenv()
 
 from config import Config
+from app.extensions import db, jwt  # Import extensions here
 
-# Create JWT manager
-jwt = JWTManager()
-from app import db
 def create_app():
     """Create and configure the Flask application."""
-    # Determine static folder path
     static_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), 'frontend', 'build'))
     
-    # Create Flask app
     app = Flask(__name__, static_folder=static_folder, static_url_path='')
-    
-    # Load configuration
     app.config.from_object(Config)
 
-    # Override or set specific configurations
+    # Set up database URI and JWT settings
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URI", "sqlite:///postgres.db")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "dev-secret-key")
-    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = 3600  # 1 hour
-    app.config["JWT_REFRESH_TOKEN_EXPIRES"] = 30 * 24 * 3600  # 30 days
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = 3600  
+    app.config["JWT_REFRESH_TOKEN_EXPIRES"] = 30 * 24 * 3600  
 
     # Initialize extensions
-    db.init_app(app)  # Ensure db is initialized with the app
+    db.init_app(app)  
     jwt.init_app(app)
     CORS(app)  
 
-    # Import models AFTER db is initialized
+    # Import models after initializing db
     from app.models.user import User
     from app.models.bet import Bet, BetLeg
     from app.models.betting_stats import BettingStats
     from app.models.Prediction import Prediction
     from app.models.bankroll import Bankroll
 
-    # Register all blueprints
+    # Register blueprints
     from app.api.upload import upload_bp
     from app.utils.error_handlers import register_error_handlers
     from app.Routes.leaderboard_routes import leaderboard_routes
@@ -56,7 +49,6 @@ def create_app():
     from app.Routes.subscription_routes import subscription_bp
     from app.Routes.bets import bp
 
-    # Blueprint registration
     app.register_blueprint(upload_bp, url_prefix='/api/upload')
     app.register_blueprint(leaderboard_routes)
     app.register_blueprint(bankroll_bp, url_prefix='/api/bankroll')
@@ -76,7 +68,7 @@ def create_app():
     def api_health():
         return {"status": "healthy", "message": "Clutch App API is running"}
 
-    # Serve static files from the React app
+    # Serve static files from React
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
     def serve(path):
