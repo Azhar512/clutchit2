@@ -270,7 +270,7 @@ const Layout = ({ children }) => {
               <Menu className="w-6 h-6" />
             </button>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-white">John Doe</span>
+              <span className="text-sm text-white"></span>
               <div className="w-8 h-8 bg-purple-600/30 rounded-full border border-purple-500/50 backdrop-blur-sm glow-effect"></div>
             </div>
           </div>

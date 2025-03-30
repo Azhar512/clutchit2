@@ -66,7 +66,7 @@ const DEFAULT_SUBSCRIPTION_PLANS = [
       stripePriceId: 'price_100credits' 
     }
   ];
-const PaymentMethodsPage = ({ 
+const Payments = ({ 
   user = { id: 'user_test_123' }, 
   currentSubscription = null,
   currentCredits = 0,
@@ -400,4 +400,4 @@ const PaymentMethodsPage = ({
   );
 };
 
-export default PaymentMethodsPage;
+export default Payments;

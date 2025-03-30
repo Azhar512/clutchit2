@@ -1,58 +1,40 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Trophy, Flame, Star, Crown, TrendingUp, ArrowUpRight } from 'lucide-react';
-import axios from '../config/axiosConfig';
 
 const Leaderboard = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [leaders, setLeaders] = useState([]);
   const [currentUserStats, setCurrentUserStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const canvasRef = useRef(null);
   const animationFrameRef = useRef(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-          throw new Error('Authentication token not found');
-        }
-        
-        const config = {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        };
-        
-        const topPerformersResponse = await axios.get(
-          `${process.env.REACT_APP_API_URL}/api/leaderboard/top?limit=5`, 
-          config
-        );
-        
-        const currentUserResponse = await axios.get(
-          `${process.env.REACT_APP_API_URL}/api/leaderboard/user/current`, 
-          config
-        );
-        
-        if (!topPerformersResponse.data.success || !currentUserResponse.data.success) {
-          throw new Error('Failed to fetch leaderboard data');
-        }
-        
-        setLeaders(topPerformersResponse.data.data);
-        setCurrentUserStats(currentUserResponse.data.data);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching leaderboard data:', err);
-        setError('Failed to load leaderboard data. Please try again later.');
-        setLoading(false);
-      }
+    // Demo data instead of fetching
+    const demoLeaders = [
+      { rank: 1, username: "AlphaTrader", winRate: "78.5%", streak: 12, profit: 24350 },
+      { rank: 2, username: "InvestorPro", winRate: "72.3%", streak: 8, profit: 18720 },
+      { rank: 3, username: "MarketWizard", winRate: "69.8%", streak: 5, profit: 15680 },
+      { rank: 4, username: "StrategyGuru", winRate: "65.4%", streak: 4, profit: 12340 },
+      { rank: 5, username: "TradeMaster", winRate: "62.1%", streak: 3, profit: 9870 }
+    ];
+
+    const demoUserStats = {
+      rank: 843,
+      username: "azhar11",
+      winRate: "0%",
+      streak: 0,
+      profit: 0,
+      percentile: "Top 0%"
     };
-    
-    fetchData();
+
+    // Simulate loading
+    setTimeout(() => {
+      setLeaders(demoLeaders);
+      setCurrentUserStats(demoUserStats);
+      setLoading(false);
+    }, 1000);
   }, []);
 
   useEffect(() => {
@@ -203,23 +185,6 @@ const Leaderboard = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="text-red-500 text-center max-w-md p-6 bg-gray-800 rounded-lg">
-          <h2 className="text-xl font-bold mb-2">Error</h2>
-          <p>{error}</p>
-          <button 
-            className="mt-4 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-            onClick={() => window.location.reload()}
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="dashboard-container">
       {/* Canvas for background animations */}
@@ -336,8 +301,7 @@ const Leaderboard = () => {
               </div>
             </CardContent>
           </Card>
-            )}
-
+        )}
       </div>
         
       <style jsx>{`
@@ -427,7 +391,7 @@ const Leaderboard = () => {
           filter: blur(15px);
           opacity: 0.7;
           pointer-events: none;
-z-index: 1;
+          z-index: 1;
         }
 
         .star-1 { top: 15%; left: 10%; background: #a855f7; width: 4px; height: 4px; }
