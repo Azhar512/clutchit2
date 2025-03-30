@@ -7,36 +7,38 @@ import os
 load_dotenv()
 
 from config import Config
-from app.extensions import db, jwt  # Import extensions here
+from app.extensions import db, jwt
+from flask_migrate import Migrate  # ✅ Add Flask-Migrate
 
 def create_app():
     """Create and configure the Flask application."""
-    static_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), 'frontend', 'build'))
-    
+    static_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '../frontend/build'))
+
     app = Flask(__name__, static_folder=static_folder, static_url_path='')
     app.config.from_object(Config)
 
-    # Set up database URI and JWT settings
+    # ✅ Correct Database Configuration
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URI", "sqlite:///postgres.db")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "dev-secret-key")
-    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = 3600  
-    app.config["JWT_REFRESH_TOKEN_EXPIRES"] = 30 * 24 * 3600  
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = 3600
+    app.config["JWT_REFRESH_TOKEN_EXPIRES"] = 30 * 24 * 3600
 
-    # Initialize extensions
-    db.init_app(app)  
+    # ✅ Initialize extensions first
+    db.init_app(app)
     jwt.init_app(app)
-    CORS(app)  
+    CORS(app)
+    migrate = Migrate(app, db)  # ✅ Add Migrate
 
-    # Import models after initializing db
+    # ✅ Import models AFTER initializing db to avoid circular imports
     from app.models.user import User
     from app.models.bet import Bet, BetLeg
     from app.models.betting_stats import BettingStats
     from app.models.Prediction import Prediction
     from app.models.bankroll import Bankroll
 
-    # Register blueprints
+    # ✅ Register blueprints
     from app.api.upload import upload_bp
     from app.utils.error_handlers import register_error_handlers
     from app.Routes.leaderboard_routes import leaderboard_routes
@@ -60,15 +62,15 @@ def create_app():
     app.register_blueprint(help_bp)
     app.register_blueprint(dashboard_bp)
 
-    # Register error handlers
+    # ✅ Register error handlers
     register_error_handlers(app)
 
-    # Health check route
+    # ✅ Health check route
     @app.route('/api/health')
     def api_health():
         return {"status": "healthy", "message": "Clutch App API is running"}
 
-    # Serve static files from React
+    # ✅ Serve static files from React
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
     def serve(path):
@@ -77,8 +79,4 @@ def create_app():
         else:
             return send_from_directory(app.static_folder, 'index.html')
 
-    # Create database tables
-    with app.app_context():
-        db.create_all()
-
-    return app
+    return app  # ✅ Removed db.create_all()
