@@ -10,7 +10,7 @@ from  app import db
 
 profile_bp = Blueprint('profile', __name__)
 
-@profile_bp.route('/', methods=['GET'])
+@profile_bp.route('', methods=['GET'])
 @jwt_required()
 def get_profile():
     """Get user profile information"""

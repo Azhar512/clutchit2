@@ -27,7 +27,8 @@ def create_app():
     # Initialize extensions
     db.init_app(app)  
     jwt.init_app(app)
-    CORS(app)  
+    CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
+
 
     # Import models after initializing db
     from app.models.user import User
