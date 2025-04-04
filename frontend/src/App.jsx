@@ -12,6 +12,17 @@ import BankrollManagement from './pages/BankrollManagement';
 import { ToastProvider } from './components/ui/use-toast';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import axios from 'axios';
+import { useEffect } from 'react';
+
+// Set the base URL for all axios requests
+axios.defaults.baseURL = 'http://82.25.110.175:5000';
+
+// Initialize token on app load
+const token = localStorage.getItem('accessToken');
+if (token) {
+  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+}
 
 function App() {
   return (
@@ -24,7 +35,7 @@ function App() {
             <Route path="/signup" element={<Signup />} />
 
             {/* Default Route - Redirect to login if not authenticated */}
-            <Route path="/" element={<Navigate to="/login" />} />
+            <Route path="/" element={<Navigate to="/dashboard" />} />
 
             {/* Protected Routes */}
             <Route 
@@ -106,7 +117,6 @@ function App() {
                   </Layout>
                 </ProtectedRoute>
               }
-               
             />
           </Routes>
         </ToastProvider>

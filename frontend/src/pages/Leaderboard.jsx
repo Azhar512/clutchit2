@@ -22,7 +22,7 @@ const Leaderboard = () => {
 
     const demoUserStats = {
       rank: 843,
-      username: "azhar11",
+      username: "hamza",
       winRate: "0%",
       streak: 0,
       profit: 0,

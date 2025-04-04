@@ -42,21 +42,31 @@ const Login = () => {
         username: formData.username,
         password: formData.password
       });
-      
-      localStorage.setItem('accessToken', response.data.access_token);
-      localStorage.setItem('refreshToken', response.data.refresh_token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      
-      navigate('/dashboard');
-      
+  
+      console.log("API Response:", response.data); // Debugging API response
+  
+      if (response.data.access_token) {
+        localStorage.setItem('accessToken', response.data.access_token);
+        localStorage.setItem('refreshToken', response.data.refresh_token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+  
+        console.log("Saved Token:", localStorage.getItem('accessToken')); // Debug
+        console.log("Saved User:", localStorage.getItem('user')); // Debug
+  
+        navigate('/dashboard');
+      } else {
+        console.error("Login failed: No access token received");
+        setError("Invalid response from server.");
+      }
     } catch (err) {
+      console.error("Login error:", err);
       const errorMessage = err.response?.data?.error || 'Login failed. Please check your credentials.';
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
-
+  
   // Particle and Canvas Animation Setup
   useEffect(() => {
     const canvas = canvasRef.current;

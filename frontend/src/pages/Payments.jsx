@@ -1,71 +1,73 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CreditCard, Zap, Users, Trophy } from 'lucide-react';
+import { CreditCard, Zap, Users, Trophy, CheckCircle, AlertCircle, Loader } from 'lucide-react';
+import axios from 'axios';
 
 const DEFAULT_SUBSCRIPTION_PLANS = [
-    {
-      id: 'basic_plan',
-      name: 'Basic',
-      price: 10,
-      totalCredits: 600,
-      aiPredictionCredits: 300,
-      betUploadCredits: 300,
-      features: [
-        'Limited AI picks & bet uploads',
-        'Basic Vault Access'
-      ],
-      stripePriceId: 'price_basic'
-    },
-    {
-      id: 'premium_plan',
-      name: 'Premium',
-      price: 20,
-      totalCredits: 1200,
-      aiPredictionCredits: 600,
-      betUploadCredits: 600,
-      features: [
-        'Vault access',
-        'Hedge alerts',
-        'More bet uploads'
-      ],
-      stripePriceId: 'price_premium'
-    },
-    {
-      id: 'unlimited_plan',
-      name: 'Unlimited',
-      price: 40,
-      totalCredits: 'Unlimited',
-      aiPredictionCredits: 'Unlimited',
-      betUploadCredits: 'Unlimited',
-      features: [
-        'Full AI insights',
-        'Bankroll tracking',
-        'VIP access'
-      ],
-      stripePriceId: 'price_unlimited'
-    }
-  ];
-  
-  const DEFAULT_CREDIT_PACKAGES = [
-    { 
-      id: 'credits_10', 
-      credits: 10, 
-      price: 4.99, 
-      stripePriceId: 'price_10credits' 
-    },
-    { 
-      id: 'credits_50', 
-      credits: 50, 
-      price: 19.99, 
-      stripePriceId: 'price_50credits' 
-    },
-    { 
-      id: 'credits_100', 
-      credits: 100, 
-      price: 39.99, 
-      stripePriceId: 'price_100credits' 
-    }
-  ];
+  {
+    id: 'basic',
+    name: 'Basic',
+    price: 10,
+    totalCredits: 600,
+    aiPredictionCredits: 300,
+    betUploadCredits: 300,
+    features: [
+      'Limited AI picks & bet uploads',
+      'Basic Vault Access'
+    ],
+    stripePriceId: 'price_basic_id'
+  },
+  {
+    id: 'premium',
+    name: 'Premium',
+    price: 20,
+    totalCredits: 1200,
+    aiPredictionCredits: 600,
+    betUploadCredits: 600,
+    features: [
+      'Vault access',
+      'Hedge alerts',
+      'More bet uploads'
+    ],
+    stripePriceId: 'price_premium_id'
+  },
+  {
+    id: 'unlimited',
+    name: 'Unlimited',
+    price: 40,
+    totalCredits: 'Unlimited',
+    aiPredictionCredits: 'Unlimited',
+    betUploadCredits: 'Unlimited',
+    features: [
+      'Full AI insights',
+      'Bankroll tracking',
+      'VIP access'
+    ],
+    stripePriceId: 'price_unlimited_id'
+  }
+];
+
+const DEFAULT_CREDIT_PACKAGES = [
+  { 
+    id: 'credits_10', 
+    credits: 10, 
+    price: 4.99, 
+    stripePriceId: 'price_10credits' 
+  },
+  { 
+    id: 'credits_50', 
+    credits: 50, 
+    price: 19.99, 
+    stripePriceId: 'price_50credits' 
+  },
+  { 
+    id: 'credits_100', 
+    credits: 100, 
+    price: 39.99, 
+    stripePriceId: 'price_100credits' 
+  }
+];
+
 const Payments = ({ 
   user = { id: 'user_test_123' }, 
   currentSubscription = null,
@@ -77,325 +79,381 @@ const Payments = ({
 }) => {
   const [selectedSubscription, setSelectedSubscription] = useState(null);
   const [selectedCreditPackage, setSelectedCreditPackage] = useState(null);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const canvasRef = useRef(null);
-  const animationFrameRef = useRef(null);
+  const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+  const [userSubscription, setUserSubscription] = useState(currentSubscription);
+  const [expandedSection, setExpandedSection] = useState('subscription'); // 'subscription' or 'credits'
   const navigate = useNavigate();
 
-  // Stripe checkout and account connection methods (unchanged)
-  const handleStripeCheckout = async (type, item) => {
-    try {
-      const checkoutResponse = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type,
-          itemId: item.id,
-          userId: user.id,
-          stripePriceId: item.stripePriceId
-        })
-      });
-
-      const { sessionUrl } = await checkoutResponse.json();
-      
-      if (sessionUrl) {
-        window.location.href = sessionUrl;
-      }
-    } catch (error) {
-      console.error('Checkout error:', error);
-    }
-  };
-
-  const connectStripeAccount = async () => {
-    try {
-      const response = await fetch('/api/stripe/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id })
-      });
-
-      const { accountLink } = await response.json();
-      
-      if (accountLink) {
-        window.location.href = accountLink;
-      }
-    } catch (error) {
-      console.error('Stripe Connect Error:', error);
-    }
-  };
-
-  // Particle and Canvas Animation Setup (similar to login page)
+  // Fetch current subscription on component mount
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    
-    // Particle class (same as login page)
-    class Particle {
-      constructor() {
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
-        this.size = Math.random() * 3 + 1;
-        this.speedX = Math.random() * 1 - 0.5;
-        this.speedY = Math.random() * 1 - 0.5;
-        this.color = this.getRandomColor();
-        this.opacity = Math.random() * 0.5 + 0.1;
-      }
-      
-      getRandomColor() {
-        const colors = [
-          'rgba(168, 85, 247, 0.4)',  // Purple
-          'rgba(139, 92, 246, 0.3)',  // Indigo
-          'rgba(79, 70, 229, 0.3)',   // Indigo darker
-          'rgba(191, 219, 254, 0.2)', // Light blue
-        ];
-        return colors[Math.floor(Math.random() * colors.length)];
-      }
-      
-      update() {
-        this.x += this.speedX;
-        this.y += this.speedY;
-        
-        if (this.size > 0.2) this.size -= 0.01;
-        
-        // Reset particle when it gets too small or goes off screen
-        if (this.size <= 0.2 || 
-            this.x < 0 || 
-            this.x > canvas.width || 
-            this.y < 0 || 
-            this.y > canvas.height) {
-          this.x = Math.random() * canvas.width;
-          this.y = Math.random() * canvas.height;
-          this.size = Math.random() * 3 + 1;
-          this.speedX = Math.random() * 1 - 0.5;
-          this.speedY = Math.random() * 1 - 0.5;
+    const fetchSubscription = async () => {
+      try {
+        const token = localStorage.getItem('token'); // Assuming JWT stored in localStorage
+        if (!token) return;
+
+        const response = await axios.get('/subscription/', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (response.data) {
+          setUserSubscription(response.data);
+          onSubscriptionChange(response.data);
+        }
+      } catch (error) {
+        // 404 is expected if user has no subscription
+        if (error.response && error.response.status !== 404) {
+          showNotification('Failed to fetch subscription information', 'error');
         }
       }
-      
-      draw() {
-        ctx.fillStyle = this.color;
-        ctx.globalAlpha = this.opacity;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-    
-    // Create particle array
-    const particleArray = [];
-    const particleCount = Math.min(100, window.innerWidth / 20);
-    
-    for (let i = 0; i < particleCount; i++) {
-      particleArray.push(new Particle());
-    }
-    
-    // Animation loop
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Update and draw particles
-      particleArray.forEach(particle => {
-        particle.update();
-        particle.draw();
-      });
-      
-      animationFrameRef.current = requestAnimationFrame(animate);
     };
-    
-    animate();
-    
-    // Handle resize
-    const handleResize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    
-    window.addEventListener('resize', handleResize);
-    
-    // Mouse movement tracking
-    const handleMouseMove = (event) => {
-      setMousePosition({
-        x: event.clientX,
-        y: event.clientY
-      });
-    };
-    
-    window.addEventListener('mousemove', handleMouseMove);
-    
-    // Cleanup
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('mousemove', handleMouseMove);
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
+
+    fetchSubscription();
   }, []);
 
-  // Plan icon selector (unchanged)
-  const getPlanIcon = (planName) => {
-    const iconClasses = "w-8 h-8";
-    switch(planName) {
-      case 'Basic': return <Users className={`${iconClasses} text-blue-500`} />;
-      case 'Premium': return <Trophy className={`${iconClasses} text-purple-500`} />;
-      case 'Unlimited': return <Zap className={`${iconClasses} text-green-500`} />;
-      default: return <CreditCard className={`${iconClasses} text-gray-500`} />;
+  const showNotification = (message, type = 'success') => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification({ show: false, message: '', type: '' });
+    }, 5000);
+  };
+
+  // Create subscription
+  const createSubscription = async (subscriptionType) => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post('/subscription/create', 
+        { subscription_type: subscriptionType },
+        { headers: { Authorization: `Bearer ${token}` }}
+      );
+
+      if (response.data && response.data.subscription) {
+        setUserSubscription(response.data.subscription);
+        onSubscriptionChange(response.data.subscription);
+        showNotification('Subscription created successfully!');
+      }
+    } catch (error) {
+      const errorMsg = error.response?.data?.error || 'Failed to create subscription';
+      showNotification(errorMsg, 'error');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // Upgrade subscription
+  const upgradeSubscription = async (subscriptionType) => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post('/subscription/upgrade', 
+        { subscription_type: subscriptionType },
+        { headers: { Authorization: `Bearer ${token}` }}
+      );
+
+      if (response.data && response.data.subscription) {
+        setUserSubscription(response.data.subscription);
+        onSubscriptionChange(response.data.subscription);
+        showNotification('Subscription upgraded successfully!');
+      }
+    } catch (error) {
+      const errorMsg = error.response?.data?.error || 'Failed to upgrade subscription';
+      showNotification(errorMsg, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Cancel subscription
+  const cancelSubscription = async () => {
+    if (!window.confirm('Are you sure you want to cancel your subscription?')) return;
+    
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post('/subscription/cancel', 
+        {},
+        { headers: { Authorization: `Bearer ${token}` }}
+      );
+
+      if (response.data) {
+        setUserSubscription(null);
+        onSubscriptionChange(null);
+        showNotification('Subscription cancelled successfully');
+      }
+    } catch (error) {
+      const errorMsg = error.response?.data?.error || 'Failed to cancel subscription';
+      showNotification(errorMsg, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Create Stripe Checkout session
+  const createCheckoutSession = async (subscriptionType) => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post('/subscription/checkout-session', 
+        { subscription_type: subscriptionType },
+        { headers: { Authorization: `Bearer ${token}` }}
+      );
+
+      if (response.data && response.data.checkout_url) {
+        window.location.href = response.data.checkout_url;
+      }
+    } catch (error) {
+      const errorMsg = error.response?.data?.error || 'Failed to create checkout session';
+      showNotification(errorMsg, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Credit package checkout
+  const handleCreditPackageCheckout = async (creditPackage) => {
+    // This would need to be implemented on your backend
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post('/credits/checkout-session', 
+        { 
+          package_id: creditPackage.id,
+          amount: creditPackage.credits,
+          price: creditPackage.price
+        },
+        { headers: { Authorization: `Bearer ${token}` }}
+      );
+
+      if (response.data && response.data.checkout_url) {
+        window.location.href = response.data.checkout_url;
+      }
+    } catch (error) {
+      showNotification('Failed to process credit purchase', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle subscription selection
+  const handleSubscriptionSelect = (plan) => {
+    setSelectedSubscription(plan);
+    
+    if (!userSubscription) {
+      // Create new subscription
+      createCheckoutSession(plan.id);
+    } else if (plan.id !== userSubscription.subscription_type.toLowerCase()) {
+      // Upgrade subscription
+      upgradeSubscription(plan.id);
+    } else {
+      showNotification('You already have this subscription', 'info');
+    }
+  };
+
+  // Handle credit package selection
+  const handleCreditPackageSelect = (creditPackage) => {
+    setSelectedCreditPackage(creditPackage);
+    handleCreditPackageCheckout(creditPackage);
+  };
+
+  // Connect Stripe account for sellers
+  const connectStripeAccount = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post('/stripe/connect-account', 
+        { userId: user.id },
+        { headers: { Authorization: `Bearer ${token}` }}
+      );
+
+      if (response.data && response.data.onboarding_url) {
+        window.location.href = response.data.onboarding_url;
+      }
+    } catch (error) {
+      showNotification('Failed to connect Stripe account', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Format currency
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-[#2e0068] to-[#10002b]">
-      {/* Animated Canvas Background */}
-      <canvas ref={canvasRef} className="absolute inset-0 z-0 pointer-events-none"></canvas>
-      
-      {/* Mouse Follow Light */}
-      <div 
-        className="mouse-follow-light" 
-        style={{
-          left: `${mousePosition.x}px`,
-          top: `${mousePosition.y}px`
-        }}
-      ></div>
+    <div className="w-full max-w-6xl mx-auto p-4">
+      {/* Notification */}
+      {notification.show && (
+        <div className={`fixed top-4 right-4 p-4 rounded-md shadow-lg flex items-center ${
+          notification.type === 'error' ? 'bg-red-100 border-red-400' : 
+          notification.type === 'info' ? 'bg-blue-100 border-blue-400' : 
+          'bg-green-100 border-green-400'
+        }`}>
+          {notification.type === 'error' ? 
+            <AlertCircle className="mr-2 h-5 w-5 text-red-500" /> : 
+            <CheckCircle className="mr-2 h-5 w-5 text-green-500" />
+          }
+          <span>{notification.message}</span>
+        </div>
+      )}
 
-      {/* Decorative Elements */}
-      <div className="absolute top-10 left-10 z-10">
-        <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-indigo-500 animate-pulse">
-          ClutchIt Vault
-        </h1>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">Payment & Subscription</h1>
+        <p className="text-gray-600">Manage your subscription and credits</p>
       </div>
 
-      <div className="relative z-10 w-full max-w-6xl p-6">
-        {/* User Status */}
-        <div className="bg-black/30 backdrop-blur-lg rounded-xl shadow-2xl p-6 mb-8 text-center">
-          <h2 className="text-xl font-semibold text-white">Your Current Plan</h2>
-          <div className="mt-4 text-gray-300">
-            <p>Current Subscription: {currentSubscription?.name || 'No Active Subscription'}</p>
-            <p>Available Credits: {currentCredits || 0}</p>
+      {/* Current Subscription Status */}
+      {userSubscription && (
+        <div className="mb-6 p-4 border rounded-lg bg-blue-50">
+          <h2 className="text-xl font-semibold mb-2">Current Subscription</h2>
+          <div className="flex flex-wrap items-center justify-between">
+            <div>
+              <p>Plan: <span className="font-semibold">{userSubscription.subscription_type}</span></p>
+              <p>Status: <span className={`font-semibold ${userSubscription.is_active ? 'text-green-600' : 'text-red-600'}`}>
+                {userSubscription.is_active ? 'Active' : 'Inactive'}
+              </span></p>
+              {userSubscription.is_trial && <p className="text-purple-600 font-medium">Trial Period</p>}
+            </div>
+            <div className="mt-2 md:mt-0">
+              <p>Credits: <span className="font-semibold">{userSubscription.credits}</span></p>
+              <p>Expires: <span className="font-semibold">
+                {new Date(userSubscription.end_date).toLocaleDateString()}
+              </span></p>
+            </div>
+            <button 
+              onClick={cancelSubscription}
+              className="mt-2 md:mt-0 px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+              disabled={loading}
+            >
+              {loading ? <Loader className="h-4 w-4 animate-spin" /> : 'Cancel Subscription'}
+            </button>
           </div>
         </div>
+      )}
 
-        {/* Subscription Plans */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-semibold mb-6 text-white text-center">Subscription Plans</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {subscriptionPlans.map((plan) => (
-              <div 
-                key={plan.id} 
-                className={`bg-black/30 backdrop-blur-lg rounded-xl shadow-2xl p-6 hover:shadow-xl transition-all ${
-                  currentSubscription?.id === plan.id ? 'border-2 border-green-500' : ''
+      {/* Section Tabs */}
+      <div className="flex mb-6 border-b">
+        <button 
+          onClick={() => setExpandedSection('subscription')}
+          className={`py-2 px-4 ${expandedSection === 'subscription' ? 'border-b-2 border-blue-500 font-medium' : 'text-gray-500'}`}
+        >
+          Subscription Plans
+        </button>
+        <button 
+          onClick={() => setExpandedSection('credits')}
+          className={`py-2 px-4 ${expandedSection === 'credits' ? 'border-b-2 border-blue-500 font-medium' : 'text-gray-500'}`}
+        >
+          Buy Credits
+        </button>
+      </div>
+
+      {/* Subscription Plans */}
+      {expandedSection === 'subscription' && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {subscriptionPlans.map((plan) => (
+            <div 
+              key={plan.id}
+              className={`border rounded-lg p-6 transition-all ${
+                userSubscription && userSubscription.subscription_type.toLowerCase() === plan.id 
+                  ? 'border-green-500 bg-green-50' 
+                  : 'hover:shadow-md'
+              }`}
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold">{plan.name}</h3>
+                {userSubscription && userSubscription.subscription_type.toLowerCase() === plan.id && (
+                  <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Current</span>
+                )}
+              </div>
+              <p className="text-2xl font-bold mb-4">{formatCurrency(plan.price)}<span className="text-sm text-gray-500">/month</span></p>
+              
+              <div className="mb-4">
+                <div className="flex items-center mb-2">
+                  <Zap className="h-5 w-5 text-yellow-500 mr-2" />
+                  <p>{typeof plan.totalCredits === 'string' ? plan.totalCredits : plan.totalCredits.toLocaleString()} Total Credits</p>
+                </div>
+                <div className="flex items-center mb-2">
+                  <Trophy className="h-5 w-5 text-purple-500 mr-2" />
+                  <p>{typeof plan.aiPredictionCredits === 'string' ? plan.aiPredictionCredits : plan.aiPredictionCredits.toLocaleString()} AI Prediction Credits</p>
+                </div>
+                <div className="flex items-center">
+                  <Users className="h-5 w-5 text-blue-500 mr-2" />
+                  <p>{typeof plan.betUploadCredits === 'string' ? plan.betUploadCredits : plan.betUploadCredits.toLocaleString()} Bet Upload Credits</p>
+                </div>
+              </div>
+              
+              <ul className="mb-6 text-sm">
+                {plan.features.map((feature, index) => (
+                  <li key={index} className="flex items-center mb-1">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              
+              <button
+                onClick={() => handleSubscriptionSelect(plan)}
+                disabled={loading || (userSubscription && userSubscription.subscription_type.toLowerCase() === plan.id)}
+                className={`w-full py-2 px-4 rounded-md transition-colors ${
+                  userSubscription && userSubscription.subscription_type.toLowerCase() === plan.id
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
                 }`}
               >
-                <div className="flex items-center mb-4">
-                  {getPlanIcon(plan.name)}
-                  <h3 className="ml-4 text-xl font-semibold text-white">{plan.name}</h3>
-                </div>
-                <p className="text-3xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-indigo-500">${plan.price}/month</p>
-                <div className="mb-4 text-gray-300">
-                  <p className="font-medium">Total Monthly Credits: {plan.totalCredits}</p>
-                  <p className="text-sm text-gray-400">
-                    AI Prediction Credits: {plan.aiPredictionCredits}
-                  </p>
-                  <p className="text-sm text-gray-400">
-                    Bet Upload Credits: {plan.betUploadCredits}
-                  </p>
-                </div>
-                <ul className="mb-6 space-y-2">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-center text-gray-300">
-                      <CreditCard className="w-4 h-4 mr-2 text-green-500" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <button 
-                  onClick={() => handleStripeCheckout('subscription', plan)}
-                  disabled={currentSubscription?.id === plan.id}
-                  className={`w-full py-2 rounded-lg transition-all bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white ${
-                    currentSubscription?.id === plan.id
-                      ? 'opacity-50 cursor-not-allowed'
-                      : 'hover:scale-105'
-                  }`}
-                >
-                  {currentSubscription?.id === plan.id ? 'Current Plan' : `Choose ${plan.name} Plan`}
-                </button>
-              </div>
-            ))}
-          </div>
-          <p className="text-center text-sm text-gray-400 mt-4">
-            Credits expire at the end of the billing cycle. Track remaining credits in your dashboard.
-          </p>
-        </section>
-
-        {/* Buy Credits Section */}
-        <section>
-          <h2 className="text-2xl font-semibold mb-6 text-white text-center">Buy AI Prediction Credits</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {creditPackages.map((pkg) => (
-              <div 
-                key={pkg.id} 
-                className="bg-black/30 backdrop-blur-lg rounded-xl shadow-2xl p-6 hover:shadow-xl transition-all"
-              >
-                <div className="flex items-center justify-center mb-4">
-                  <Zap className="w-10 h-10 text-yellow-500" />
-                  <span className="ml-4 text-2xl font-bold text-white">{pkg.credits} Credits</span>
-                </div>
-                <p className="text-center text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-indigo-500">${pkg.price}</p>
-                <button 
-                  onClick={() => handleStripeCheckout('credits', pkg)}
-                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-2 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all hover:scale-105"
-                >
-                  Purchase Credits
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Seller Payout Section */}
-        <section className="mt-12 bg-black/30 backdrop-blur-lg rounded-xl shadow-2xl p-8">
-          <h2 className="text-2xl font-semibold mb-4 text-white">Seller Payouts</h2>
-          <div className="flex items-center">
-            <div className="w-full">
-              <p className="mb-4 text-gray-300">
-                As a Vault Marketplace seller, you'll receive <strong className="text-green-400">90% of each sale</strong>, 
-                with <strong className="text-red-400">10% platform fee</strong> retained.
-              </p>
-              <button 
-                onClick={connectStripeAccount}
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2 px-6 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all hover:scale-105"
-              >
-                Connect Stripe Account
+                {loading ? 
+                  <Loader className="h-5 w-5 animate-spin mx-auto" /> : 
+                  userSubscription && userSubscription.subscription_type.toLowerCase() === plan.id ? 
+                    'Current Plan' : 
+                    userSubscription ? 'Upgrade Plan' : 'Subscribe'
+                }
               </button>
             </div>
-          </div>
-        </section>
-      </div>
+          ))}
+        </div>
+      )}
 
-      {/* Background Decoration */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl"></div>
-      </div>
+      {/* Credit Packages */}
+      {expandedSection === 'credits' && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {creditPackages.map((pkg) => (
+            <div 
+              key={pkg.id}
+              className="border rounded-lg p-6 hover:shadow-md transition-all"
+            >
+              <h3 className="text-xl font-bold mb-2">{pkg.credits} Credits</h3>
+              <p className="text-2xl font-bold mb-4">{formatCurrency(pkg.price)}</p>
+              <p className="text-sm text-gray-500 mb-6">
+                ${(pkg.price / pkg.credits).toFixed(2)} per credit
+              </p>
+              <button
+                onClick={() => handleCreditPackageSelect(pkg)}
+                disabled={loading}
+                className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
+              >
+                {loading ? <Loader className="h-5 w-5 animate-spin mx-auto" /> : 'Buy Now'}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
-      {/* Mouse Follow Light Style */}
-      <style jsx>{`
-        .mouse-follow-light {
-          position: fixed;
-          width: 300px;
-          height: 300px;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, rgba(139,92,246,0) 70%);
-          transform: translate(-50%, -50%);
-          pointer-events: none;
-          z-index: 3;
-          filter: blur(20px);
-          transition: opacity 0.3s ease;
-          opacity: 0.7;
-        }
-      `}</style>
+      {/* Seller Account Link Section */}
+      <div className="mt-12 border-t pt-6">
+        <h2 className="text-xl font-bold mb-4">Become a Seller</h2>
+        <p className="mb-4">Want to sell your own sports predictions? Connect your Stripe account to get started.</p>
+        <button
+          onClick={connectStripeAccount}
+          disabled={loading}
+          className="py-2 px-6 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors flex items-center"
+        >
+          {loading ? <Loader className="h-5 w-5 animate-spin mr-2" /> : <CreditCard className="h-5 w-5 mr-2" />}
+          Connect Stripe Account
+        </button>
+      </div>
     </div>
   );
 };

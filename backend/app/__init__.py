@@ -28,7 +28,12 @@ def create_app():
     # ✅ Initialize extensions first
     db.init_app(app)
     jwt.init_app(app)
-    CORS(app)
+    CORS(app, 
+     resources={r"/api/*": {"origins": ["http://82.25.110.175", "http://localhost:3000", "http://82.25.110.175:3000"]}}, 
+     supports_credentials=True, 
+     allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Origin"],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+     expose_headers=["Content-Type", "Authorization"])   
     migrate = Migrate(app, db)  # ✅ Add Migrate
 
     # ✅ Import models AFTER initializing db to avoid circular imports

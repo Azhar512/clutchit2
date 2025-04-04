@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { Bell, Settings, CreditCard, LogOut, Save, X, Edit } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "../components/ui/card";
@@ -6,6 +5,8 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Switch } from "../components/ui/switch";
 import { useToast } from "../components/ui/use-toast";
+import { useAuth } from "../components/auth/AuthWrapper";
+import axios from 'axios';
 
 const Profile = () => {
   const { toast } = useToast();
@@ -13,34 +14,73 @@ const Profile = () => {
   const canvasRef = useRef(null);
   const animationFrameRef = useRef(null);
   
-  // Template user data
-  const [userProfile, setUserProfile] = useState({
-    name: 'azhar',
-    username: 'azhar11',
-    email: 'befragas4@gmail.com',
-    joinDate: 'March 29, 2025',
-    subscription: 'Pro',
-    totalBets: '0',
-    winRate: '0%',
-    avgOdds: '+185',
-    credits: '10'
-  });
-  
-  const [loading, setLoading] = useState(false);
+  const [userProfile, setUserProfile] = useState({});
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [editedProfile, setEditedProfile] = useState({});
   const [currentView, setCurrentView] = useState('general'); 
+  const API_URL = 'http://82.25.110.175';
 
   useEffect(() => {
-    // Initialize edited profile with userProfile data
-    setEditedProfile(userProfile);
-    setLoading(false);
+    fetchUserProfile();
   }, []);
 
+  const fetchUserProfile = async () => {
+    try {
+      const token = localStorage.getItem('accessToken'); 
+      
+      if (!token) {
+        throw new Error("No access token found");
+      }
+      
+      // Make sure we're sending the token correctly
+      const response = await axios.get(`/api/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      setUserProfile(response.data);
+      setEditedProfile(response.data);
+      setLoading(false);
+    } catch (err) {
+      console.error("Profile fetch error:", err);
+      
+      const status = err.response?.status;
+      const errorMessage = err.response?.data?.error || "Failed to load profile data";
+      
+      if (status === 401) {
+        // Clear tokens and redirect
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        window.location.href = '/login';
+      }
+      
+      setError(errorMessage);
+      setLoading(false);
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    }
+  };
   const updateProfile = async () => {
     try {
-      // Update local state without backend call
+      const token = localStorage.getItem('accessToken');
+      
+      if (!token) {
+        throw new Error("Not authenticated");
+      }
+      
+      await axios.put(`${axios.defaults.baseURL}/api/profile/`, editedProfile, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
       setUserProfile(editedProfile);
       setEditMode(false);
       
@@ -264,6 +304,7 @@ const Profile = () => {
       <div className="flex flex-col items-center justify-center h-screen bg-gray-900">
         <div className="text-red-500 text-xl">{error}</div>
         <button 
+          onClick={fetchUserProfile}
           className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-md text-white"
         >
           Retry
@@ -342,10 +383,6 @@ const Profile = () => {
                 <div className="flex justify-between items-center p-2 hover:bg-white/5 rounded transition-all duration-300">
                   <span className="text-gray-300">Member Since</span>
                   <span className="text-white">{userProfile.joinDate}</span>
-                </div>
-                <div className="flex justify-between items-center p-2 hover:bg-white/5 rounded transition-all duration-300">
-                  <span className="text-gray-300">Credits</span>
-                  <span className="text-white">{userProfile.credits}</span>
                 </div>
                 <Button 
                   className="mt-4 w-full bg-white/5 hover:bg-white/10 text-white border border-purple-500/20" 
@@ -436,21 +473,6 @@ const Profile = () => {
                 </div>
               </div>
             </div>
-            <div className="space-y-2 mt-4">
-              <h3 className="text-white font-medium">Credits</h3>
-              <div className="p-3 border rounded-lg border-purple-500/20 bg-white/5">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="text-white">Available Credits</h4>
-                    <p className="text-gray-400 text-sm">Use for premium picks and features</p>
-                  </div>
-                  <span className="text-white font-medium">{userProfile.credits}</span>
-                </div>
-              </div>
-            </div>
-            <Button className="w-full bg-purple-700 hover:bg-purple-600 mt-4">
-              Buy More Credits
-            </Button>
             <Button className="w-full bg-purple-700 hover:bg-purple-600">
               Upgrade My Subscription
             </Button>
@@ -462,11 +484,6 @@ const Profile = () => {
       default:
         return null;
     }
-  };
-
-  // Handle navigation between settings tabs
-  const handleSettingsNav = (view) => {
-    setCurrentView(view);
   };
 
   return (
@@ -500,7 +517,7 @@ const Profile = () => {
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
               <div className="w-24 h-24 relative overflow-hidden rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center">
-                <span className="text-3xl font-bold text-white">A</span>
+                <span className="text-3xl font-bold text-white">JD</span>
                 <div className="icon-glow"></div>
               </div>
               <div className="text-center md:text-left">
@@ -517,9 +534,6 @@ const Profile = () => {
                   <span className="px-3 py-1 bg-green-900/30 text-green-300 rounded-full text-sm font-medium border border-green-500/20">
                     {userProfile.winRate} Win Rate
                   </span>
-                  <span className="px-3 py-1 bg-blue-900/30 text-blue-300 rounded-full text-sm font-medium border border-blue-500/20">
-                    {userProfile.credits} Credits
-                  </span>
                 </div>
               </div>
             </div>
@@ -534,16 +548,12 @@ const Profile = () => {
             <CardContent>
               <div className="space-y-4">
                 {[
-                  { icon: Settings, label: 'General Settings', view: 'general' },
-                  { icon: Bell, label: 'Notifications', view: 'notifications' },
-                  { icon: CreditCard, label: 'Subscription & Billing', view: 'billing' },
-                  { icon: LogOut, label: 'Sign Out', view: 'logout' }
+                  { icon: Settings, label: 'General Settings' },
+                  { icon: Bell, label: 'Notifications' },
+                  { icon: CreditCard, label: 'Subscription & Billing' },
+                  { icon: LogOut, label: 'Sign Out' }
                 ].map((item, index) => (
-                  <button 
-                    key={index} 
-                    className="w-full flex items-center justify-between p-2 hover:bg-white/5 rounded transition-all duration-300"
-                    onClick={() => handleSettingsNav(item.view)}
-                  >
+                  <button key={index} className="w-full flex items-center justify-between p-2 hover:bg-white/5 rounded transition-all duration-300">
                     <div className="flex items-center">
                       <item.icon className="w-5 h-5 mr-3 text-indigo-400" />
                       <span className="text-gray-300">{item.label}</span>
@@ -557,14 +567,24 @@ const Profile = () => {
           
           <Card className="dashboard-card floating-card">
             <CardHeader className="border-b border-purple-900/30">
-              <CardTitle className="text-white">
-                {currentView === 'general' ? 'General Settings' : 
-                 currentView === 'notifications' ? 'Notification Settings' : 
-                 currentView === 'billing' ? 'Subscription & Billing' : 'Settings'}
-              </CardTitle>
+              <CardTitle className="text-white">Statistics Overview</CardTitle>
             </CardHeader>
-            <CardContent className="p-4">
-              {renderSettingsContent()}
+            <CardContent>
+              <div className="space-y-4">
+                {[
+                  { label: 'Win Rate', value: userProfile.winRate },
+                  { label: 'Average Odds', value: userProfile.avgOdds },
+                  { label: 'Total Bets', value: userProfile.totalBets },
+                  { label: 'Profit (YTD)', value: '+$3,250', className: 'text-green-400' },
+                  { label: 'Clutch Picks Bought', value: '23' },
+                  { label: 'Clutch Picks Sold', value: '8' }
+                ].map((stat, index) => (
+                  <div key={index} className="flex justify-between items-center p-2 hover:bg-white/5 rounded transition-all duration-300">
+                    <span className="text-gray-300">{stat.label}</span>
+                    <span className={`font-medium ${stat.className || 'text-white'}`}>{stat.value}</span>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -657,7 +677,7 @@ const Profile = () => {
           filter: blur(15px);
           opacity: 0.7;
           pointer-events: none;
-          z-index: 1;
+z-index: 1;
         }
 
         .star-1 { top: 15%; left: 10%; background: #a855f7; width: 4px; height: 4px; }
@@ -736,6 +756,7 @@ const Profile = () => {
           pointer-events: none;
           z-index: 2;
         }
+
         .network-lines {
           position: absolute;
           top: 0;
