@@ -7,7 +7,7 @@ from  app.models.bet import Bet
 from  app.models.user import User
 from  app.models.subscription import Subscription
 from  app.models.leaderboard_model import LeaderboardEntry
-from  app.services.bet_service import BetService
+from  backend.app.services.bet_upload_service import BetService
 
 class DashboardService:
     @staticmethod

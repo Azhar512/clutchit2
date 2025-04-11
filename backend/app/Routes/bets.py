@@ -1,92 +1,212 @@
-from flask import Blueprint, request, jsonify, g
-from  app.services.ocr_service import OCRService
-from  app.services.bet_service import BetService
-from  app.models.user import User
-from  app.models.bet import Bet
-from  app.utils.auth_middleware import auth_required
-import base64
+from flask import Blueprint, request, jsonify, g, current_app
+from app.services.bet_upload_service import BetUploadService
+from app.services.nlp_service import process_text
+from app.services.ocr_service import process_image
+from app.models.user import User
+from app.models.bet import Bet
+from app.utils.auth_middleware import auth_required, subscription_required
+import logging
 
 bp = Blueprint('bets', __name__, url_prefix='/api/bets')
-ocr_service = OCRService()
-bet_service = BetService()
+bet_upload_service = BetUploadService()
 
 @bp.route('/upload', methods=['POST'])
 @auth_required  
+@subscription_required('paid')  # This would be middleware to check if user has a paid subscription
 def upload_bet_slip():
-    """API endpoint to handle bet slip uploads"""
+    """API endpoint to handle bet slip uploads for paid users"""
     user_id = g.user_id  
     
-    user = User.get_by_id(user_id)
+    # Get user information
+    user = User.query.get(user_id)
     if not user:
         return jsonify({'error': 'User not found'}), 404
     
-    if user.subscription_tier == 'free' and user.uploads_today >= 5:
-        return jsonify({'error': 'Daily upload limit reached for free tier'}), 403
-    elif user.subscription_tier == 'basic' and user.uploads_today >= 10:
-        return jsonify({'error': 'Daily upload limit reached for basic tier'}), 403
+    # Check for form data
+    if not request.is_json and not request.files:
+        return jsonify({'error': 'No data provided'}), 400
     
+    # Get Reddit and subscription usernames if provided
+    reddit_username = None
+    subscription_username = None
+    
+    if request.is_json:
+        reddit_username = request.json.get('reddit_username')
+        subscription_username = request.json.get('subscription_username')
+    elif request.form:
+        reddit_username = request.form.get('reddit_username')
+        subscription_username = request.form.get('subscription_username')
+    
+    # Handle image upload
     if 'image' in request.files:
-        image_file = request.files['image']
-        image_data = image_file.read()
+        file = request.files['image']
         
-        ocr_result = ocr_service.process_image(image_data)
-        if not ocr_result:
-            return jsonify({'error': 'Could not extract text from image'}), 400
-        
-        bet = Bet.create(
-            user_id=user_id,
-            bet_type=ocr_result.get('extracted_bet_info', {}).get('bet_type', 'unknown'),
-            teams=_extract_teams_from_ocr(ocr_result),
-            odds=_extract_odds_from_ocr(ocr_result),
-            source='image_upload',
-            original_text=ocr_result.get('full_text', ''),
-            image_url=ocr_result.get('image_url')
+        # Process the uploaded file
+        result = bet_upload_service.process_bet_upload(
+            user_id, 
+            file=file,
+            reddit_username=reddit_username,
+            subscription_username=subscription_username
         )
         
-        user.increment_uploads()
-        
+        if not result['success']:
+            return jsonify({'error': result['error']}), 400
+            
         return jsonify({
             'success': True,
-            'bet_id': bet.id,
-            'extracted_data': ocr_result.get('extracted_bet_info')
+            'bet_id': result['bet_id'],
+            'bet_data': result['bet_data'],
+            'integrity_score': result['integrity_score']
         }), 201
         
-    elif 'bet_text' in request.json:
-        bet_text = request.json['bet_text']
+    # Handle text upload
+    elif request.is_json and 'text' in request.json:
+        text = request.json['text']
         
-        bet = Bet.create(
-            user_id=user_id,
-            bet_type=request.json.get('bet_type', 'unknown'),
-            teams=request.json.get('teams', []),
-            odds=request.json.get('odds'),
-            source='text_upload',
-            original_text=bet_text
+        # Process the text
+        result = bet_upload_service.process_bet_upload(
+            user_id, 
+            text=text,
+            reddit_username=reddit_username,
+            subscription_username=subscription_username
         )
         
-        user.increment_uploads()
-        
+        if not result['success']:
+            return jsonify({'error': result['error']}), 400
+            
         return jsonify({
             'success': True,
-            'bet_id': bet.id
+            'bet_id': result['bet_id'],
+            'bet_data': result['bet_data'],
+            'integrity_score': result['integrity_score']
         }), 201
         
     else:
-        
-        return bet_service.upload_bet_slip(user_id)
+        return jsonify({'error': 'No valid image or text provided'}), 400
 
-def _extract_teams_from_ocr(ocr_result):
-    """Extract team information from OCR result"""
-    bet_info = ocr_result.get('extracted_bet_info', {})
-    teams = []
+@bp.route('/categorize', methods=['GET'])
+@auth_required
+def get_bet_categories():
+    """Return available bet categories"""
+    categories = {
+        'bet_types': [
+            'Moneyline',
+            'Spread',
+            'Over/Under',
+            'Parlay',
+            'Prop',
+            'Futures',
+            'Teaser',
+            'Pleaser',
+            'Round Robin',
+            'If Bet',
+            'Reverse',
+            'Lotto'
+        ],
+        'sports': [
+            'Basketball',
+            'Football',
+            'Baseball',
+            'Soccer',
+            'Hockey',
+            'Golf',
+            'Tennis',
+            'MMA/UFC',
+            'Boxing',
+            'Cricket',
+            'Rugby',
+            'Auto Racing',
+            'eSports',
+            'Horse Racing',
+            'Other'
+        ]
+    }
     
-    if 'team1' in bet_info:
-        teams.append(bet_info['team1'])
-    if 'team2' in bet_info:
-        teams.append(bet_info['team2'])
-        
-    return teams
+    return jsonify(categories), 200
 
-def _extract_odds_from_ocr(ocr_result):
-    """Extract odds information from OCR result"""
-    bet_info = ocr_result.get('extracted_bet_info', {})
-    return bet_info.get('odds', [])
+@bp.route('/<int:bet_id>/update-category', methods=['PATCH'])
+@auth_required
+def update_bet_category(bet_id):
+    """Update bet category after upload"""
+    user_id = g.user_id
+    
+    bet = Bet.query.filter_by(id=bet_id, user_id=user_id).first()
+    if not bet:
+        return jsonify({'error': 'Bet not found or unauthorized'}), 404
+    
+    data = request.json
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+    
+    if 'bet_type' in data:
+        bet.bet_type = data['bet_type']
+    
+    if 'sport' in data:
+        bet.metadata = bet.metadata or {}
+        bet.metadata['sport'] = data['sport']
+    
+    try:
+        db.session.commit()
+        return jsonify({'success': True, 'bet_id': bet.id}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to update bet: {str(e)}'}), 500
+
+@bp.route('/my-bets', methods=['GET'])
+@auth_required
+def get_user_bets():
+    """Get all bets for logged in user"""
+    user_id = g.user_id
+    
+    # Get query parameters
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    bet_type = request.args.get('bet_type')
+    sport = request.args.get('sport')
+    status = request.args.get('status')
+    
+    # Base query
+    query = Bet.query.filter_by(user_id=user_id)
+    
+    # Apply filters
+    if bet_type:
+        query = query.filter_by(bet_type=bet_type)
+    
+    if status:
+        query = query.filter_by(status=status)
+    
+    # Order by most recent
+    query = query.order_by(Bet.created_at.desc())
+    
+    # Paginate
+    bets_pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    
+    # Process results
+    bets = []
+    for bet in bets_pagination.items:
+        bet_data = {
+            'id': bet.id,
+            'amount': bet.amount,
+            'odds': bet.odds,
+            'bet_type': bet.bet_type,
+            'status': bet.status,
+            'created_at': bet.created_at.isoformat(),
+            'potential_payout': bet.potential_payout,
+            'expected_value': bet.expected_value,
+            'has_image': bool(bet.slip_image_path),
+            'event_name': bet.event_name,
+            'selection': bet.selection
+        }
+        
+        # Add sport from metadata if available
+        if hasattr(bet, 'metadata') and bet.metadata and 'sport' in bet.metadata:
+            bet_data['sport'] = bet.metadata['sport']
+        
+        bets.append(bet_data)
+    
+    return jsonify({
+        'bets': bets,
+        'total': bets_pagination.total,
+        'pages': bets_pagination.pages,
+        'current_page': page
+    }), 200

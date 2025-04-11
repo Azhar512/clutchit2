@@ -34,16 +34,23 @@ def create_subscription():
     
     data = request.get_json()
     
-    if 'subscription_type' not in data or data['subscription_type'] not in [
-        SubscriptionType.BASIC, SubscriptionType.PREMIUM, SubscriptionType.UNLIMITED
-    ]:
+    if 'subscription_type' not in data:
+        return jsonify({"error": "Missing subscription_type parameter"}), 400
+    
+    # Convert the incoming subscription_type to uppercase to match enum values
+    subscription_type_str = data['subscription_type'].upper()
+    
+    # Map from string to actual enum values
+    subscription_map = {
+        "BASIC": SubscriptionType.BASIC,
+        "PREMIUM": SubscriptionType.PREMIUM, 
+        "UNLIMITED": SubscriptionType.UNLIMITED
+    }
+    
+    if subscription_type_str not in subscription_map:
         return jsonify({"error": "Invalid subscription type"}), 400
     
-    existing_subscription = Subscription.query.filter_by(user_id=current_user_id, is_active=True).first()
-    if existing_subscription:
-        return jsonify({"error": "User already has an active subscription"}), 409
-    
-    subscription_type = data['subscription_type']
+    subscription_type = subscription_map[subscription_type_str]
     
     # Create or get Stripe customer
     if not user.stripe_customer_id:
@@ -105,6 +112,66 @@ def create_subscription():
     except stripe.error.StripeError as e:
         return jsonify({"error": f"Stripe error: {str(e)}"}), 400
 
+@subscription_bp.route('/checkout-session', methods=['POST'])
+@jwt_required()
+def create_checkout_session():
+    """Create a Stripe Checkout session for subscription payments"""
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    data = request.get_json()
+    
+    if 'subscription_type' not in data:
+        return jsonify({"error": "Missing subscription_type parameter"}), 400
+    
+    # Convert the incoming subscription_type to uppercase to match enum values
+    subscription_type_str = data['subscription_type'].upper()
+    
+    # Map from string to actual enum values
+    subscription_map = {
+        "BASIC": SubscriptionType.BASIC,
+        "PREMIUM": SubscriptionType.PREMIUM, 
+        "UNLIMITED": SubscriptionType.UNLIMITED
+    }
+    
+    if subscription_type_str not in subscription_map:
+        return jsonify({"error": "Invalid subscription type"}), 400
+    
+    subscription_type = subscription_map[subscription_type_str]
+    
+    # Create checkout session
+    try:
+        success_url = request.host_url + 'subscription/success?session_id={CHECKOUT_SESSION_ID}'
+        cancel_url = request.host_url + 'subscription/cancel'
+        
+        checkout_session = stripe.checkout.Session.create(
+            customer_email=user.email if not user.stripe_customer_id else None,
+            customer=user.stripe_customer_id if user.stripe_customer_id else None,
+            payment_method_types=['card'],
+            line_items=[{
+                'price': SUBSCRIPTION_PRICE_MAP[subscription_type],
+                'quantity': 1,
+            }],
+            mode='subscription',
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={
+                'user_id': str(user.id),
+                'subscription_type': subscription_type
+            }
+        )
+        
+        return jsonify({
+            'checkout_url': checkout_session.url,
+            'session_id': checkout_session.id
+        }), 200
+        
+    except stripe.error.StripeError as e:
+        return jsonify({"error": f"Stripe error: {str(e)}"}), 400
+
 @subscription_bp.route('/cancel', methods=['POST'])
 @jwt_required()
 def cancel_subscription():
@@ -142,17 +209,28 @@ def upgrade_subscription():
     
     data = request.get_json()
     
-    if 'subscription_type' not in data or data['subscription_type'] not in [
-        SubscriptionType.BASIC, SubscriptionType.PREMIUM, SubscriptionType.UNLIMITED
-    ]:
+    if 'subscription_type' not in data:
+        return jsonify({"error": "Missing subscription_type parameter"}), 400
+    
+    # Convert the incoming subscription_type to uppercase to match enum values
+    subscription_type_str = data['subscription_type'].upper()
+    
+    # Map from string to actual enum values
+    subscription_map = {
+        "BASIC": SubscriptionType.BASIC,
+        "PREMIUM": SubscriptionType.PREMIUM, 
+        "UNLIMITED": SubscriptionType.UNLIMITED
+    }
+    
+    if subscription_type_str not in subscription_map:
         return jsonify({"error": "Invalid subscription type"}), 400
+    
+    subscription_type = subscription_map[subscription_type_str]
     
     subscription = Subscription.query.filter_by(user_id=current_user_id, is_active=True).first()
     
     if not subscription:
         return jsonify({"error": "No active subscription found"}), 404
-    
-    new_subscription_type = data['subscription_type']
     
     # If subscription exists in Stripe, update it
     if subscription.stripe_subscription_id:
@@ -166,7 +244,7 @@ def upgrade_subscription():
             # Update the subscription item with the new price
             stripe.SubscriptionItem.modify(
                 item_id,
-                price=SUBSCRIPTION_PRICE_MAP[new_subscription_type],
+                price=SUBSCRIPTION_PRICE_MAP[subscription_type],
             )
             
             # Update metadata
@@ -174,7 +252,7 @@ def upgrade_subscription():
                 subscription.stripe_subscription_id,
                 metadata={
                     'user_id': str(user.id),
-                    'subscription_type': new_subscription_type
+                    'subscription_type': subscription_type
                 }
             )
             
@@ -182,7 +260,7 @@ def upgrade_subscription():
             updated_stripe_sub = stripe.Subscription.retrieve(subscription.stripe_subscription_id)
             
             # Update the local subscription
-            subscription.subscription_type = new_subscription_type
+            subscription.subscription_type = subscription_type
             subscription.end_date = datetime.fromtimestamp(updated_stripe_sub.current_period_end)
             subscription.update_from_stripe()
             
@@ -197,62 +275,13 @@ def upgrade_subscription():
             return jsonify({"error": f"Stripe error: {str(e)}"}), 400
     else:
         # Just update the local record if not using Stripe
-        subscription.subscription_type = new_subscription_type
+        subscription.subscription_type = subscription_type
         db.session.commit()
         
         return jsonify({
             "message": "Subscription upgraded successfully",
             "subscription": subscription.to_dict()
         }), 200
-
-@subscription_bp.route('/checkout-session', methods=['POST'])
-@jwt_required()
-def create_checkout_session():
-    """Create a Stripe Checkout session for subscription payments"""
-    current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
-    
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-    
-    data = request.get_json()
-    
-    if 'subscription_type' not in data or data['subscription_type'] not in [
-        SubscriptionType.BASIC, SubscriptionType.PREMIUM, SubscriptionType.UNLIMITED
-    ]:
-        return jsonify({"error": "Invalid subscription type"}), 400
-    
-    subscription_type = data['subscription_type']
-    
-    # Create checkout session
-    try:
-        success_url = request.host_url + 'subscription/success?session_id={CHECKOUT_SESSION_ID}'
-        cancel_url = request.host_url + 'subscription/cancel'
-        
-        checkout_session = stripe.checkout.Session.create(
-            customer_email=user.email if not user.stripe_customer_id else None,
-            customer=user.stripe_customer_id if user.stripe_customer_id else None,
-            payment_method_types=['card'],
-            line_items=[{
-                'price': SUBSCRIPTION_PRICE_MAP[subscription_type],
-                'quantity': 1,
-            }],
-            mode='subscription',
-            success_url=success_url,
-            cancel_url=cancel_url,
-            metadata={
-                'user_id': str(user.id),
-                'subscription_type': subscription_type
-            }
-        )
-        
-        return jsonify({
-            'checkout_url': checkout_session.url,
-            'session_id': checkout_session.id
-        }), 200
-        
-    except stripe.error.StripeError as e:
-        return jsonify({"error": f"Stripe error: {str(e)}"}), 400
 
 @subscription_bp.route('/webhook', methods=['POST'])
 def webhook():
@@ -404,5 +433,3 @@ def handle_payment_failed(invoice):
     # Update subscription status
     subscription.stripe_status = 'past_due'
     db.session.commit()
-    
-    

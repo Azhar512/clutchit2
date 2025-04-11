@@ -7,6 +7,7 @@ const DEFAULT_SUBSCRIPTION_PLANS = [
   {
     id: 'basic',
     name: 'Basic',
+    key: 'BASIC', // ✅ This is used to match backend ENUM
     price: 10,
     totalCredits: 600,
     aiPredictionCredits: 300,
@@ -20,6 +21,7 @@ const DEFAULT_SUBSCRIPTION_PLANS = [
   {
     id: 'premium',
     name: 'Premium',
+    key: 'PREMIUM',
     price: 20,
     totalCredits: 1200,
     aiPredictionCredits: 600,
@@ -34,6 +36,7 @@ const DEFAULT_SUBSCRIPTION_PLANS = [
   {
     id: 'unlimited',
     name: 'Unlimited',
+    key: 'UNLIMITED',
     price: 40,
     totalCredits: 'Unlimited',
     aiPredictionCredits: 'Unlimited',
@@ -57,6 +60,9 @@ const DEFAULT_CREDIT_PACKAGES = [
   { 
     id: 'credits_50', 
     credits: 50, 
+
+
+
     price: 19.99, 
     stripePriceId: 'price_50credits' 
   },
@@ -89,10 +95,10 @@ const Payments = ({
   useEffect(() => {
     const fetchSubscription = async () => {
       try {
-        const token = localStorage.getItem('token'); // Assuming JWT stored in localStorage
+        const token = localStorage.getItem('accesstoken'); // Assuming JWT stored in localStorage
         if (!token) return;
 
-        const response = await axios.get('/subscription/', {
+        const response = await axios.get('/api/subscription/', {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -122,8 +128,8 @@ const Payments = ({
   const createSubscription = async (subscriptionType) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post('/subscription/create', 
+      const token = localStorage.getItem('accesstoken');
+      const response = await axios.post('/api/subscription/create', 
         { subscription_type: subscriptionType },
         { headers: { Authorization: `Bearer ${token}` }}
       );
@@ -145,8 +151,8 @@ const Payments = ({
   const upgradeSubscription = async (subscriptionType) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post('/subscription/upgrade', 
+      const token = localStorage.getItem('accesstoken');
+      const response = await axios.post('/api/subscription/upgrade', 
         { subscription_type: subscriptionType },
         { headers: { Authorization: `Bearer ${token}` }}
       );
@@ -170,8 +176,8 @@ const Payments = ({
     
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post('/subscription/cancel', 
+      const token = localStorage.getItem('accesstoken');
+      const response = await axios.post('/api/subscription/cancel', 
         {},
         { headers: { Authorization: `Bearer ${token}` }}
       );
@@ -193,8 +199,8 @@ const Payments = ({
   const createCheckoutSession = async (subscriptionType) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post('/subscription/checkout-session', 
+      const token = localStorage.getItem('accesstoken');
+      const response = await axios.post('/api/subscription/checkout-session', 
         { subscription_type: subscriptionType },
         { headers: { Authorization: `Bearer ${token}` }}
       );
@@ -215,8 +221,8 @@ const Payments = ({
     // This would need to be implemented on your backend
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post('/credits/checkout-session', 
+      const token = localStorage.getItem('accesstoken');
+      const response = await axios.post('/api/credits/checkout-session', 
         { 
           package_id: creditPackage.id,
           amount: creditPackage.credits,
@@ -241,10 +247,14 @@ const Payments = ({
     
     if (!userSubscription) {
       // Create new subscription
-      createCheckoutSession(plan.id);
-    } else if (plan.id !== userSubscription.subscription_type.toLowerCase()) {
+      createCheckoutSession(plan.key);
+
+    } else if (plan.key !== userSubscription.subscription_type) {
+
       // Upgrade subscription
-      upgradeSubscription(plan.id);
+      upgradeSubscription(plan.key);
+
+
     } else {
       showNotification('You already have this subscription', 'info');
     }
@@ -260,8 +270,8 @@ const Payments = ({
   const connectStripeAccount = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post('/stripe/connect-account', 
+      const token = localStorage.getItem('accesstoken');
+      const response = await axios.post('/api/stripe/connect-account', 
         { userId: user.id },
         { headers: { Authorization: `Bearer ${token}` }}
       );

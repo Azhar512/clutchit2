@@ -25,7 +25,7 @@ const Profile = () => {
   useEffect(() => {
     fetchUserProfile();
   }, []);
-
+ 
   const fetchUserProfile = async () => {
     try {
       const token = localStorage.getItem('accessToken'); 
@@ -35,7 +35,7 @@ const Profile = () => {
       }
       
       // Make sure we're sending the token correctly
-      const response = await axios.get(`/api/profile`, {
+      const response = await axios.get(`${API_URL}:5000/api/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -75,7 +75,8 @@ const Profile = () => {
         throw new Error("Not authenticated");
       }
       
-      await axios.put(`${axios.defaults.baseURL}/api/profile/`, editedProfile, {
+      await axios.put(`${API_URL}:5000/api/profile/`, editedProfile, {
+
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -109,7 +110,7 @@ const Profile = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('access_token');
+    localStorage.removeItem('accesstoken');
     window.location.href = '/login';
   };
 

@@ -1,809 +1,530 @@
-import React from "react";
-import { Upload, Image, FileText } from 'lucide-react';
-import { Card, CardHeader, CardContent, CardTitle } from '../components/ui/card';
-import { useEffect, useState, useRef } from 'react';
-import axios from 'axios'; 
+import React, { useState, useCallback } from 'react';
+import axios from 'axios';
+import { useDropzone } from 'react-dropzone';
+import { useNavigate } from 'react-router-dom';
 
-const UploadBet = () => {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState(null);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const fileInputRef = useRef(null);
-  const canvasRef = useRef(null);
-  const animationFrameRef = useRef(null);
+// Icons (assuming you're using a library like react-icons)
+import { FaUpload, FaFileImage, FaFileAlt, FaCheck, FaExclamationTriangle } from 'react-icons/fa';
+
+const BetUploadPage = () => {
+  const navigate = useNavigate();
   
-  useEffect(() => {
-    const handleMouseMove = (event) => {
-      setMousePosition({
-        x: event.clientX,
-        y: event.clientY
-      });
-    };
+  // Form state
+  const [uploadType, setUploadType] = useState('image'); // 'image' or 'text'
+  const [text, setText] = useState('');
+  const [redditUsername, setRedditUsername] = useState('');
+  const [subscriptionUsername, setSubscriptionUsername] = useState('');
+  
+  // UI state
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [extractedData, setExtractedData] = useState(null);
+  const [integrityScore, setIntegrityScore] = useState(null);
+  const [betId, setBetId] = useState(null);
+  const [step, setStep] = useState(1); // 1: Upload, 2: Review, 3: Success
+  
+  // For image uploads
+  const [previewImage, setPreviewImage] = useState(null);
+  
+  // File upload handling with dropzone
+  const onDrop = useCallback(acceptedFiles => {
+    // Reset states
+    setError('');
+    setExtractedData(null);
     
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-    };
+    const file = acceptedFiles[0];
+    if (file) {
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+      if (!validTypes.includes(file.type)) {
+        setError('Please upload a valid image file (JPEG or PNG)');
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('File size should be less than 5MB');
+        return;
+      }
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPreviewImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+      
+      // Store file for upload
+      setFile(file);
+    }
   }, []);
   
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    
-    class Particle {
-      constructor() {
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
-        this.size = Math.random() * 5 + 1;
-        this.speedX = Math.random() * 1 - 0.5;
-        this.speedY = Math.random() * 1 - 0.5;
-        this.color = this.getRandomColor();
-        this.opacity = Math.random() * 0.5 + 0.1;
-      }
-      
-      getRandomColor() {
-        const colors = [
-          'rgba(168, 85, 247, 0.4)',  
-          'rgba(139, 92, 246, 0.3)',  
-          'rgba(79, 70, 229, 0.3)',   
-          'rgba(191, 219, 254, 0.2)', 
-        ];
-        return colors[Math.floor(Math.random() * colors.length)];
-      }
-      
-      update() {
-        this.x += this.speedX;
-        this.y += this.speedY;
-        
-        if (this.size > 0.2) this.size -= 0.01;
-        
-        if (this.size <= 0.2 || 
-            this.x < 0 || 
-            this.x > canvas.width || 
-            this.y < 0 || 
-            this.y > canvas.height) {
-          this.x = Math.random() * canvas.width;
-          this.y = Math.random() * canvas.height;
-          this.size = Math.random() * 5 + 1;
-          this.speedX = Math.random() * 1 - 0.5;
-          this.speedY = Math.random() * 1 - 0.5;
-        }
-      }
-      
-      draw() {
-        ctx.fillStyle = this.color;
-        ctx.globalAlpha = this.opacity;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-    
-     const particleArray = [];
-    const particleCount = Math.min(100, window.innerWidth / 20);
-    
-    for (let i = 0; i < particleCount; i++) {
-      particleArray.push(new Particle());
-    }
-    
-    function drawWave(yOffset, amplitude, wavelength, color) {
-      ctx.beginPath();
-      ctx.moveTo(0, yOffset);
-      
-      for (let x = 0; x < canvas.width; x++) {
-        const y = yOffset + Math.sin(x / wavelength) * amplitude;
-        ctx.lineTo(x, y);
-      }
-      
-      ctx.lineTo(canvas.width, canvas.height);
-      ctx.lineTo(0, canvas.height);
-      ctx.closePath();
-      ctx.fillStyle = color;
-      ctx.fill();
-    }
-    
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      const time = Date.now() / 10000;
-      drawWave(
-        canvas.height * 0.85 + Math.sin(time) * 20, 
-        15, 
-        120, 
-        'rgba(76, 29, 149, 0.1)'
-      );
-      drawWave(
-        canvas.height * 0.8 + Math.sin(time + 1) * 25, 
-        20, 
-        100, 
-        'rgba(109, 40, 217, 0.07)'
-      );
-      
-      particleArray.forEach(particle => {
-        particle.update();
-        particle.draw();
-      });
-      
-      if (mousePosition.x > 0 && mousePosition.y > 0) {
-        ctx.beginPath();
-        ctx.arc(mousePosition.x, mousePosition.y, 60, 0, Math.PI * 2);
-        const gradient = ctx.createRadialGradient(
-          mousePosition.x, 
-          mousePosition.y, 
-          0, 
-          mousePosition.x, 
-          mousePosition.y, 
-          60
-        );
-        gradient.addColorStop(0, 'rgba(139, 92, 246, 0.2)');
-        gradient.addColorStop(1, 'rgba(139, 92, 246, 0)');
-        ctx.fillStyle = gradient;
-        ctx.fill();
-      }
-      
-      animationFrameRef.current = requestAnimationFrame(animate);
-    };
-    
-    animate();
-    
-    const handleResize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    
-    window.addEventListener('resize', handleResize);
-    
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-  }, []);
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
+    onDrop,
+    accept: {
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png']
+    },
+    maxFiles: 1
+  });
   
-  useEffect(() => {
-    const animateStars = () => {
-      const stars = document.querySelectorAll('.star-effect');
-      stars.forEach((star, index) => {
-        setInterval(() => {
-          const opacity = 0.6 + Math.random() * 0.4;
-          const scale = 0.9 + Math.random() * 0.3;
-          star.style.opacity = opacity.toString();
-          star.style.transform = `scale(${scale})`;
-        }, 2000 + (index * 500));
-      });
-    };
-    
-    const floatingElements = () => {
-      const elements = document.querySelectorAll('.floating');
-      elements.forEach((el, index) => {
-        const delay = index * 0.5;
-        el.style.animation = `float 8s ease-in-out ${delay}s infinite`;
-      });
-    };
-    
-    animateStars();
-    floatingElements();
-  }, []);
-
-  const validateFile = (file) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-    if (!allowedTypes.includes(file.type)) {
-      setUploadStatus({
-        type: 'error',
-        message: 'Invalid file type. Please upload JPG, PNG, or PDF files only.'
-      });
-      return false;
-    }
-    
-    const maxSize = 10 * 1024 * 1024; 
-    if (file.size > maxSize) {
-      setUploadStatus({
-        type: 'error',
-        message: 'File too large. Maximum size is 10MB.'
-      });
-      return false;
-    }
-    
-    return true;
-  };
-
-  const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    if (validateFile(file)) {
-      setSelectedFile(file);
-      setUploadStatus({
-        type: 'info',
-        message: `File "${file.name}" selected. Click Upload to submit.`
-      });
-    }
-  };
-
-  const handleUploadClick = () => {
-    fileInputRef.current.click();
-  };
-
-  const handleManualEntryClick = () => {
-    console.log('Navigate to manual entry form');
-  };
-
-  const handleDragOver = (e) => {
+  const [file, setFile] = useState(null);
+  
+  // Handle form submission
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
-    
-    if (validateFile(file)) {
-      setSelectedFile(file);
-      setUploadStatus({
-        type: 'info',
-        message: `File "${file.name}" selected. Click Upload to submit.`
-      });
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!selectedFile) {
-      setUploadStatus({
-        type: 'error',
-        message: 'Please select a file first.'
-      });
-      return;
-    }
-    
-    setIsUploading(true);
-    setUploadStatus({
-      type: 'info',
-      message: 'Uploading bet slip...'
-    });
-    
-    const formData = new FormData();
-    formData.append('file', selectedFile);
+    setLoading(true);
+    setError('');
     
     try {
-      const token = localStorage.getItem('token');
+      let response;
       
-      const response = await axios.post('/api/bets/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}`
+      if (uploadType === 'image') {
+        if (!file) {
+          setError('Please select an image to upload');
+          setLoading(false);
+          return;
         }
-      });
+        
+        // Create form data for file upload
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        if (redditUsername) {
+          formData.append('reddit_username', redditUsername);
+        }
+        
+        if (subscriptionUsername) {
+          formData.append('subscription_username', subscriptionUsername);
+        }
+        
+        // Send request to upload endpoint
+        response = await axios.post('/api/bets/upload', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+      } else {
+        // Text upload
+        if (!text.trim()) {
+          setError('Please enter the bet details');
+          setLoading(false);
+          return;
+        }
+        
+        // Send request to upload endpoint with text
+        response = await axios.post('/api/bets/upload', {
+          text: text,
+          reddit_username: redditUsername || undefined,
+          subscription_username: subscriptionUsername || undefined
+        });
+      }
       
-      setUploadStatus({
-        type: 'success',
-        message: 'Bet slip uploaded successfully! Analyzing your bet...'
-      });
+      // Handle successful response
+      if (response.data.success) {
+        setExtractedData(response.data.bet_data);
+        setIntegrityScore(response.data.integrity_score);
+        setBetId(response.data.bet_id);
+        setSuccess(true);
+        setStep(2); // Move to review step
+      }
       
-      setTimeout(() => {
-        console.log('Navigate to bet analysis page', response.data.bet_id);
-      }, 2000);
-      
-    } catch (error) {
-      console.error('Error uploading bet slip:', error);
-      setUploadStatus({
-        type: 'error',
-        message: error.response?.data?.error || 'Failed to upload bet slip. Please try again.'
-      });
+    } catch (err) {
+      console.error('Error uploading bet:', err);
+      setError(err.response?.data?.error || 'Failed to upload bet. Please try again.');
     } finally {
-      setIsUploading(false);
+      setLoading(false);
     }
   };
-
-  return (
-    <div className="upload-container">
-      {/* Canvas for background animations */}
-      <canvas ref={canvasRef} className="animation-canvas"></canvas>
+  
+  // Handle confirming the extracted data and proceeding
+  const handleConfirmBet = async () => {
+    setLoading(true);
+    
+    try {
+      // Update bet with any corrected information
+      await axios.patch(`/api/bets/${betId}/update-category`, {
+        bet_type: extractedData.bet_type,
+        sport: extractedData.sport
+      });
       
-      {/* Background Elements */}
-      <div className="star-effect star-1"></div>
-      <div className="star-effect star-2"></div>
-      <div className="star-effect star-3"></div>
-      
-      <div className="mouse-follow-light" style={{
-        left: `${mousePosition.x}px`,
-        top: `${mousePosition.y}px`
-      }}></div>
-      
-      <div className="dot-overlay"></div>
-      <div className="glow-circle circle-1 floating"></div>
-      <div className="glow-circle circle-2 floating"></div>
-      
-      {/* Upload Content */}
-      <div className="page-content">
-        <div className="upload-header">
-          <h1 className="upload-title">Upload Your Bet</h1>
-          <p className="upload-subtitle">Share your winning strategy</p>
-          <div className="header-accent"></div>
-        </div>
-
-        <Card className="upload-card floating-card z-10 relative">
-          <CardHeader className="border-b border-purple-900/30">
-            <CardTitle className="text-white flex items-center">
-              <span className="text-glow">Bet Slip Upload</span>
-              <div className="ml-2 w-2 h-2 bg-cyan-400 rounded-full pulse-animation"></div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div 
-              className={`dropzone ${isDragging ? 'active-drag' : ''} ${isUploading ? 'uploading' : ''}`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                style={{ display: 'none' }} 
-                accept=".jpg,.jpeg,.png,.pdf" 
-                onChange={handleFileSelect} 
-              />
-              
-              <div className="icon-container upload-icon">
-                <Upload className="w-12 h-12 text-indigo-400" />
-                <div className="icon-glow upload-glow"></div>
-              </div>
-              
-              {selectedFile ? (
-                <p className="mt-4 text-lg text-indigo-200">
-                  Selected: {selectedFile.name}
-                </p>
-              ) : (
-                <p className="mt-4 text-lg text-indigo-200">
-                  Drag and drop your bet slip here, or click to browse
-                </p>
-              )}
-              
-              {uploadStatus && (
-                <div className={`mt-3 text-sm ${
-                  uploadStatus.type === 'error' ? 'text-red-400' : 
-                  uploadStatus.type === 'success' ? 'text-green-400' : 
-                  'text-indigo-300'
-                }`}>
-                  {uploadStatus.message}
-                </div>
-              )}
-              
-              <div className="mt-6 flex justify-center space-x-4">
-                {selectedFile ? (
-                  <button 
-                    className="btn-primary" 
-                    onClick={handleSubmit}
-                    disabled={isUploading}
-                  >
-                    {isUploading ? 'Uploading...' : 'Submit Bet'}
-                  </button>
-                ) : (
-                  <button className="btn-primary" onClick={handleUploadClick}>
-                    <Image className="w-5 h-5 mr-2" />
-                    Upload Image
-                  </button>
-                )}
-                <button className="btn-secondary" onClick={handleManualEntryClick}>
-                  <FileText className="w-5 h-5 mr-2" />
-                  Enter Manually
-                </button>
-              </div>
-              <div className="upload-hint">
-                <p className="text-sm text-indigo-300 mt-4">
-                  Supported formats: JPG, PNG, PDF • Max size: 10MB
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      setStep(3); // Move to success step
+    } catch (err) {
+      setError('Failed to confirm bet. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Handle viewing all bets
+  const handleViewMyBets = () => {
+    navigate('/my-bets');
+  };
+  
+  // Update bet data when user makes corrections
+  const handleDataUpdate = (field, value) => {
+    setExtractedData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+  
+  // Render dropzone for image upload
+  const renderDropzone = () => (
+    <div className="mb-6">
+      <div 
+        {...getRootProps()} 
+        className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
+                    ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400'}`}
+      >
+        <input {...getInputProps()} />
+        {previewImage ? (
+          <div className="flex flex-col items-center">
+            <img src={previewImage} alt="Preview" className="max-h-64 mb-4 rounded" />
+            <p className="text-sm text-gray-500">Click or drag to change image</p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center">
+            <FaFileImage className="text-4xl mb-2 text-gray-400" />
+            <p className="text-gray-500 mb-1">
+              {isDragActive ? 'Drop the file here' : 'Drag & drop your bet slip image, or click to select'}
+            </p>
+            <p className="text-xs text-gray-400">JPG, PNG up to 5MB</p>
+          </div>
+        )}
       </div>
-
-      {/* Add enhanced CSS for the beautiful effects */}
-      <style jsx>{`
-        @keyframes float {
-          0% { transform: translateY(0px); }
-          50% { transform: translateY(-15px); }
-          100% { transform: translateY(0px); }
-        }
+    </div>
+  );
+  
+  // Render text input area
+  const renderTextInput = () => (
+    <div className="mb-6">
+      <label htmlFor="bet-text" className="block text-sm font-medium text-gray-700 mb-1">
+        Bet Details
+      </label>
+      <textarea
+        id="bet-text"
+        value={text}
+        onChange={e => setText(e.target.value)}
+        placeholder="Enter your bet details (e.g., Lakers -5.5 vs Knicks, -110, $50)"
+        className="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 min-h-32"
+        disabled={loading}
+      />
+    </div>
+  );
+  
+  // Render the upload form (step 1)
+  const renderUploadForm = () => (
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <h2 className="text-xl font-semibold mb-4">Upload Betting Content</h2>
+      
+      <div className="mb-4">
+        <div className="flex border border-gray-300 rounded-md overflow-hidden">
+          <button
+            type="button"
+            className={`flex-1 py-2 px-4 focus:outline-none ${
+              uploadType === 'image' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'
+            }`}
+            onClick={() => setUploadType('image')}
+          >
+            <FaFileImage className="inline mr-2" /> Image Upload
+          </button>
+          <button
+            type="button"
+            className={`flex-1 py-2 px-4 focus:outline-none ${
+              uploadType === 'text' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'
+            }`}
+            onClick={() => setUploadType('text')}
+          >
+            <FaFileAlt className="inline mr-2" /> Text Upload
+          </button>
+        </div>
+      </div>
+      
+      <form onSubmit={handleSubmit}>
+        {uploadType === 'image' ? renderDropzone() : renderTextInput()}
         
-        @keyframes pulse {
-          0% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.8); opacity: 0.4; }
-          100% { transform: scale(1); opacity: 1; }
-        }
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div>
+            <label htmlFor="reddit-username" className="block text-sm font-medium text-gray-700 mb-1">
+              Reddit Username (Optional)
+            </label>
+            <input
+              type="text"
+              id="reddit-username"
+              value={redditUsername}
+              onChange={e => setRedditUsername(e.target.value)}
+              placeholder="Your Reddit username"
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              disabled={loading}
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="subscription-username" className="block text-sm font-medium text-gray-700 mb-1">
+              Subscription Username (Optional)
+            </label>
+            <input
+              type="text"
+              id="subscription-username"
+              value={subscriptionUsername}
+              onChange={e => setSubscriptionUsername(e.target.value)}
+              placeholder="Your subscription username"
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              disabled={loading}
+            />
+          </div>
+        </div>
         
-        @keyframes glow {
-          0% { filter: blur(10px) brightness(1); }
-          50% { filter: blur(15px) brightness(1.3); }
-          100% { filter: blur(10px) brightness(1); }
-        }
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md flex items-center">
+            <FaExclamationTriangle className="mr-2" /> {error}
+          </div>
+        )}
         
-        @keyframes gradientShift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
+        <button
+          type="submit"
+          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors flex items-center justify-center"
+          disabled={loading}
+        >
+          {loading ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Processing...
+            </>
+          ) : (
+            <>
+              <FaUpload className="mr-2" /> Upload Bet
+            </>
+          )}
+        </button>
+      </form>
+    </div>
+  );
+  
+  // Render the review screen (step 2)
+  const renderReviewScreen = () => {
+    const sportOptions = [
+      'Basketball', 'Football', 'Baseball', 'Soccer', 'Hockey', 'Golf', 'Tennis', 
+      'MMA/UFC', 'Boxing', 'Cricket', 'Rugby', 'Auto Racing', 'eSports', 'Other'
+    ];
+    
+    const betTypeOptions = [
+      'Moneyline', 'Spread', 'Over/Under', 'Parlay', 'Prop', 'Futures',
+      'Teaser', 'Pleaser', 'Round Robin', 'If Bet', 'Reverse', 'Lotto'
+    ];
+    
+    return (
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h2 className="text-xl font-semibold mb-4">Review Betting Details</h2>
         
-        .upload-container {
-          position: relative;
-          min-height: 100vh;
-          padding: 2rem;
-          background: linear-gradient(135deg, #2e0068 0%, #1c0050 40%, #10002b 100%);
-          color: white;
-          overflow: hidden;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-        }
+        {integrityScore !== null && (
+          <div className={`mb-4 p-3 rounded-md ${
+            integrityScore > 80 ? 'bg-green-50 text-green-700' :
+            integrityScore > 50 ? 'bg-yellow-50 text-yellow-700' :
+            'bg-red-50 text-red-700'
+          }`}>
+            <div className="flex items-center justify-between">
+              <span className="font-medium">Extraction Confidence:</span>
+              <span className="font-bold">{integrityScore}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+              <div 
+                className={`h-2 rounded-full ${
+                  integrityScore > 80 ? 'bg-green-500' :
+                  integrityScore > 50 ? 'bg-yellow-500' :
+                  'bg-red-500'
+                }`} 
+                style={{ width: `${integrityScore}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
         
-        .animation-canvas {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          z-index: 1;
-          pointer-events: none;
-        }
+        <div className="space-y-4 mb-6">
+          {previewImage && uploadType === 'image' && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Uploaded Image
+              </label>
+              <img src={previewImage} alt="Bet slip" className="max-h-48 rounded border" />
+            </div>
+          )}
+          
+          <div>
+            <label htmlFor="bet-type" className="block text-sm font-medium text-gray-700 mb-1">
+              Bet Type
+            </label>
+            <select
+              id="bet-type"
+              value={extractedData?.bet_type || ''}
+              onChange={e => handleDataUpdate('bet_type', e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Select bet type</option>
+              {betTypeOptions.map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label htmlFor="sport" className="block text-sm font-medium text-gray-700 mb-1">
+              Sport
+            </label>
+            <select
+              id="sport"
+              value={extractedData?.sport || ''}
+              onChange={e => handleDataUpdate('sport', e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Select sport</option>
+              {sportOptions.map(sport => (
+                <option key={sport} value={sport}>{sport}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Teams/Selection
+            </label>
+            <div className="p-2 border border-gray-300 rounded-md bg-gray-50">
+              {extractedData?.teams && extractedData.teams.length > 0 ? (
+                <ul className="list-disc list-inside">
+                  {extractedData.teams.map((team, index) => (
+                    <li key={index} className="text-gray-800">{team}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-500 italic">No teams detected</p>
+              )}
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Odds
+            </label>
+            <div className="p-2 border border-gray-300 rounded-md bg-gray-50">
+              {extractedData?.odds && extractedData.odds.length > 0 ? (
+                <ul className="list-disc list-inside">
+                  {extractedData.odds.map((odd, index) => (
+                    <li key={index} className="text-gray-800">{odd}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-500 italic">No odds detected</p>
+              )}
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Amount
+            </label>
+            <div className="p-2 border border-gray-300 rounded-md bg-gray-50">
+              {extractedData?.amount ? (
+                <span className="text-gray-800">{extractedData.amount}</span>
+              ) : (
+                <p className="text-gray-500 italic">No amount detected</p>
+              )}
+            </div>
+          </div>
+        </div>
         
-        .page-content {
-          position: relative;
-          z-index: 10;
-          width: 100%;
-          max-width: 640px;
-          margin: 0 auto;
-        }
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md flex items-center">
+            <FaExclamationTriangle className="mr-2" /> {error}
+          </div>
+        )}
         
-        .upload-header {
-          text-align: center;
-          margin-bottom: 2rem;
-          position: relative;
-          z-index: 10;
-        }
-        
-        .upload-title {
-          font-size: 2.5rem;
-          font-weight: bold;
-          background: linear-gradient(90deg, #ffffff, #d8b4fe, #a78bfa);
-          background-size: 200% auto;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          margin-bottom: 0.5rem;
-          position: relative;
-          display: inline-block;
-          animation: gradientShift 3s ease infinite;
-        }
-        
-        .upload-subtitle {
-          font-size: 1.2rem;
-          color: #c4b5fd;
-          margin-bottom: 0.5rem;
-          letter-spacing: 1px;
-        }
-        
-        .header-accent {
-          width: 80px;
-          height: 4px;
-          background: linear-gradient(90deg, #a855f7, #2563eb);
-          border-radius: 2px;
-          margin: 0.5rem auto;
-          position: relative;
-          overflow: hidden;
-        }
-        
-        .header-accent:before {
-          content: '';
-          position: absolute;
-          top: -2px;
-          left: -100%;
-          right: 0;
-          bottom: -2px;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
-          animation: slide 2s linear infinite;
-        }
-        
-        @keyframes slide {
-          100% { left: 100%; }
-        }
-        
-        .upload-card {
-          background-color: rgba(30, 10, 60, 0.5);
-          backdrop-filter: blur(12px);
-          border: 1px solid rgba(168, 85, 247, 0.1);
-          border-radius: 16px;
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-          overflow: hidden;
-          position: relative;
-          transition: all 0.3s ease;
-          width: 100%;
-        }
-        
-        .upload-card:before {
-          content: '';
-          position: absolute;
-          top: -1px;
-          left: -1px;
-          right: -1px;
-          height: 2px;
-          background: linear-gradient(90deg, rgba(139, 92, 246, 0), rgba(139, 92, 246, 0.6), rgba(139, 92, 246, 0));
-          z-index: 1;
-        }
-        
-        .upload-card:after {
-          content: '';
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          width: 100%;
-          height: 30%;
-          background: linear-gradient(to top, rgba(139, 92, 246, 0.05), transparent);
-          z-index: 0;
-        }
-        
-        .floating-card {
-          transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .floating-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 12px 40px rgba(76, 29, 149, 0.3);
-        }
-        
-        .dropzone {
-          border: 2px dashed rgba(168, 85, 247, 0.3);
-          border-radius: 12px;
-          padding: 2.5rem 1.5rem;
-          text-align: center;
-          background-color: rgba(76, 29, 149, 0.1);
-          transition: all 0.3s ease;
-          position: relative;
-          overflow: hidden;
-        }
-        
-        .dropzone:before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(135deg, 
-            rgba(139, 92, 246, 0.05) 0%, 
-            rgba(139, 92, 246, 0) 50%,
-            rgba(139, 92, 246, 0.05) 100%);
-          z-index: -1;
-          opacity: 0.5;
-        }
-        
-        .active-drag {
-          background-color: rgba(76, 29, 149, 0.2);
-          border-color: rgba(168, 85, 247, 0.8);
-          transform: scale(1.02);
-          box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
-        }
-        
-        .uploading {
-          background-color: rgba(76, 29, 149, 0.15);
-          border-color: rgba(168, 85, 247, 0.6);
-        }
-        
-        .icon-container {
-          position: relative;
-          width: 80px;
-          height: 80px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto;
-        }
-        
-        .upload-icon {
-          animation: float 6s ease-in-out infinite;
-        }
-        
-        .icon-glow {
-          position: absolute;
-          width: 60px;
-          height: 60px;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(139, 92, 246, 0.5) 0%, rgba(139, 92, 246, 0) 70%);
-          filter: blur(8px);
-          z-index: -1;
-          animation: glow 2s ease-in-out infinite;
-        }
-        
-        .upload-glow {
-          width: 80px;
-          height: 80px;
-        }
-        
-        .btn-primary {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0.75rem 1.25rem;
-          background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
-          color: white;
-          font-weight: 500;
-          border-radius: 8px;
-          transition: all 0.3s ease;
-          border: none;
-          box-shadow: 0 4px 10px rgba(124, 58, 237, 0.3);
-          position: relative;
-          overflow: hidden;
-        }
-        
-        .btn-primary:before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-          transition: all 0.5s ease;
-        }
-        
-        .btn-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 15px rgba(124, 58, 237, 0.4);
-        }
-        
-        .btn-primary:hover:before {
-          left: 100%;
-        }
-        
-        .btn-primary:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-          transform: none;
-        }
-        
-        .btn-secondary {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0.75rem 1.25rem;
-          background: rgba(139, 92, 246, 0.1);
-          border: 1px solid rgba(139, 92, 246, 0.3);
-          color: #d8b4fe;
-          font-weight: 500;
-          border-radius: 8px;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 10px rgba(139, 92, 246, 0.1);
-        }
-        
-        .btn-secondary:hover {
-          background: rgba(139, 92, 246, 0.2);
-          transform: translateY(-2px);
-          box-shadow: 0 6px 15px rgba(139, 92, 246, 0.2);
-        }
-        
-        .star-effect {
-          position: absolute;
-          border-radius: 50%;
-          filter: blur(15px);
-          opacity: 0.7;
-          pointer-events: none;
-          z-index: 1;
-          transition: all 2s ease-in-out;
-        }
-        
-        .star-1 {
-          top: 15%;
-          right: 15%;
-          width: 200px;
-          height: 200px;
-          background: radial-gradient(circle, rgba(168,85,247,0.6) 0%, rgba(173,216,230,0) 70%);
-        }
-        
-        .star-2 {
-          bottom: 25%;
-          left: 10%;
-          width: 150px;
-          height: 150px;
-          background: radial-gradient(circle, rgba(76,29,149,0.6) 0%, rgba(173,216,230,0) 70%);
-        }
-        
-        .star-3 {
-          top: 35%;
-          left: 30%;
-          width: 100px;
-          height: 100px;
-          background: radial-gradient(circle, rgba(221,214,254,0.4) 0%, rgba(173,216,230,0) 70%);
-        }
-        
-        .mouse-follow-light {
-          position: fixed;
-          width: 300px;
-          height: 300px;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, rgba(139,92,246,0) 70%);
-          transform: translate(-50%, -50%);
-          pointer-events: none;
-          z-index: 3;
-          filter: blur(20px);
-          transition: opacity 0.3s ease;
-          opacity: 0.7;
-        }
-        
-        .glow-circle {
-          position: absolute;
-          border-radius: 50%;
-          background: rgba(139, 92, 246, 0.05);
-          filter: blur(60px);
-          z-index: 0;
-        }
-        
-        .circle-1 {
-          top: -10%;
-          right: -5%;
-          width: 300px;
-          height: 300px;
-        }
-        
-        .circle-2 {
-          bottom: 10%;
-          left: -5%;
-          width: 250px;
-          height: 250px;
-          background: rgba(76, 29, 149, 0.05);
-        }
-        
-        .dot-overlay {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-          background-size: 30px 30px;
-          z-index: 1;
-          pointer-events: none;
-        }
-        
-        .text-glow {
-          text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
-        }
-        
-        .pulse-animation {
-          animation: pulse 3s infinite;
-        }
-        
-        .upload-hint {
-          position: relative;
-          margin-top: 1rem;
-        }
-        
-        .upload-hint:before {
-          content: '';
-          position: absolute;
-          top: -10px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 40px;
-          height: 2px;
-          background: rgba(139, 92, 246, 0.3);
-          border-radius: 2px;
-        }
-      `}</style>
+        <div className="flex space-x-3">
+          <button
+            type="button"
+            onClick={() => setStep(1)}
+            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-md transition-colors"
+            disabled={loading}
+          >
+            Back
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmBet}
+            className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors flex items-center justify-center"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Saving...
+              </>
+            ) : (
+              <>
+                <FaCheck className="mr-2" /> Confirm Bet
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    );
+  };
+  
+  // Render success screen (step 3)
+  const renderSuccessScreen = () => (
+    <div className="bg-white p-6 rounded-lg shadow-md text-center">
+      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <FaCheck className="text-green-500 text-2xl" />
+      </div>
+      <h2 className="text-xl font-semibold mb-2">Bet Successfully Saved!</h2>
+      <p className="text-gray-600 mb-6">
+        Your bet has been processed and saved to your account.
+      </p>
+      
+      <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
+        <button
+          type="button"
+          onClick={() => {
+            // Reset all states and go back to step 1
+            setFile(null);
+            setPreviewImage(null);
+            setText('');
+            setRedditUsername('');
+            setSubscriptionUsername('');
+            setExtractedData(null);
+            setIntegrityScore(null);
+            setBetId(null);
+            setStep(1);
+          }}
+          className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
+        >
+          Upload Another Bet
+        </button>
+        <button
+          type="button"
+          onClick={handleViewMyBets}
+          className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-md transition-colors"
+        >
+          View My Bets
+        </button>
+      </div>
+    </div>
+  );
+  
+  return (
+    <div className="max-w-2xl mx-auto py-8 px-4">
+      {step === 1 && renderUploadForm()}
+      {step === 2 && renderReviewScreen()}
+      {step === 3 && renderSuccessScreen()}
     </div>
   );
 };
 
-export default UploadBet;
+export default BetUploadPage;

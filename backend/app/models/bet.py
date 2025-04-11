@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, Float, String, DateTime, ForeignKey, Boolean, Enum
+from sqlalchemy import Column, Integer, Float, String, DateTime, ForeignKey, Boolean, Enum, JSON
 import enum
 from sqlalchemy.orm import relationship
 from app import db
@@ -34,6 +34,9 @@ class Bet(db.Model):
     
     slip_image_path = Column(String(255))
     upload_date = Column(DateTime)
+    
+    # Added: Store additional metadata as JSON
+    metadata = Column(JSON)
     
     user = relationship("User", back_populates="bets")
     prediction = relationship("Prediction", back_populates="bets", foreign_keys=[prediction_id])
@@ -76,7 +79,8 @@ def create_bet(
     win_probability=0.0,
     potential_payout=0.0,
     slip_image_path=None,
-    legs=None
+    legs=None,
+    metadata=None
 ):
     """
     Create a new bet with optional associated bet legs.
@@ -96,6 +100,7 @@ def create_bet(
         potential_payout (float, optional): Potential payout amount
         slip_image_path (str, optional): Path to bet slip image
         legs (list, optional): List of bet leg dictionaries
+        metadata (dict, optional): Additional metadata for the bet
     
     Returns:
         Bet: Created bet object
@@ -115,7 +120,8 @@ def create_bet(
             win_probability=win_probability,
             potential_payout=potential_payout,
             slip_image_path=slip_image_path,
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
+            metadata=metadata
         )
         
         if legs:

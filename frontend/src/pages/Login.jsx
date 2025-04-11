@@ -43,7 +43,7 @@ const Login = () => {
         password: formData.password
       });
   
-      console.log("API Response:", response.data); // Debugging API response
+      console.log("API Response:", response.data);
   
       if (response.data.access_token) {
         localStorage.setItem('accessToken', response.data.access_token);
