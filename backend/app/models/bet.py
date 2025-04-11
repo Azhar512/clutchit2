@@ -1,15 +1,27 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, Float, String, DateTime, ForeignKey, Boolean, Enum, JSON
+from sqlalchemy import (
+    Column,
+    Integer,
+    Float,
+    String,
+    DateTime,
+    ForeignKey,
+    Boolean,
+    Enum,
+    JSON
+)
 import enum
 from sqlalchemy.orm import relationship
 from app import db
 from sqlalchemy.exc import SQLAlchemyError
 
+# Enum for bet status
 class BetStatus(enum.Enum):
     PENDING = "pending"
     WON = "win"
     LOST = "loss"
 
+# Bet model
 class Bet(db.Model):
     __tablename__ = 'bets'
     
@@ -18,11 +30,13 @@ class Bet(db.Model):
     amount = Column(Float, nullable=False)
     odds = Column(Float, nullable=False)
     profit = Column(Float, default=0.0)
-    status = Column(String(20), default='pending')  
+    status = Column(String(20), default='pending')
+    
     event_name = Column(String(255))
     event_date = Column(DateTime)
-    bet_type = Column(String(50)) 
-    selection = Column(String(255))  
+    bet_type = Column(String(50))
+    selection = Column(String(255))
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     settled_at = Column(DateTime)
     prediction_id = Column(Integer, ForeignKey('predictions.id'), nullable=True)
@@ -34,17 +48,22 @@ class Bet(db.Model):
     
     slip_image_path = Column(String(255))
     upload_date = Column(DateTime)
-    
-    # Added: Store additional metadata as JSON
-    metadata = Column(JSON)
-    
+
+    # ✅ JSON field renamed from "metadata" to "additional_data"
+    additional_data = Column(JSON)
+
+    # Relationships
     user = relationship("User", back_populates="bets")
     prediction = relationship("Prediction", back_populates="bets", foreign_keys=[prediction_id])
     legs = relationship("BetLeg", back_populates="bet")
-    
-    def __repr__(self):
-        return f"<Bet(id={self.id}, user_id={self.user_id}, amount=${self.amount}, status={self.status})>"
 
+    def __repr__(self):
+        return (
+            f"<Bet(id={self.id}, user_id={self.user_id}, "
+            f"amount=${self.amount}, status={self.status})>"
+        )
+
+# BetLeg model
 class BetLeg(db.Model):
     __tablename__ = 'bet_legs'
     
@@ -53,26 +72,31 @@ class BetLeg(db.Model):
     team_name = Column(String(255))
     opponent_name = Column(String(255))
     sport_type = Column(String(50))
-    bet_type = Column(String(50)) 
+    bet_type = Column(String(50))
     odds = Column(Float, nullable=False)
-    line = Column(Float)  
+    line = Column(Float)
     status = Column(String(20), default='pending')
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
+    # Relationship
     bet = relationship("Bet", back_populates="legs")
-    
-    def __repr__(self):
-        return f"<BetLeg(id={self.id}, bet_id={self.bet_id}, team='{self.team_name}', type='{self.bet_type}')>"
 
+    def __repr__(self):
+        return (
+            f"<BetLeg(id={self.id}, bet_id={self.bet_id}, "
+            f"team='{self.team_name}', type='{self.bet_type}')>"
+        )
+
+# Bet creation function
 def create_bet(
-    user_id, 
-    amount, 
-    odds, 
-    event_name=None, 
-    event_date=None, 
-    bet_type=None, 
-    selection=None, 
+    user_id,
+    amount,
+    odds,
+    event_name=None,
+    event_date=None,
+    bet_type=None,
+    selection=None,
     prediction_id=None,
     is_clutch_pick=False,
     expected_value=0.0,
@@ -80,7 +104,7 @@ def create_bet(
     potential_payout=0.0,
     slip_image_path=None,
     legs=None,
-    metadata=None
+    metadata=None  # will be stored as 'additional_data'
 ):
     """
     Create a new bet with optional associated bet legs.
@@ -101,7 +125,7 @@ def create_bet(
         slip_image_path (str, optional): Path to bet slip image
         legs (list, optional): List of bet leg dictionaries
         metadata (dict, optional): Additional metadata for the bet
-    
+
     Returns:
         Bet: Created bet object
     """
@@ -121,9 +145,9 @@ def create_bet(
             potential_payout=potential_payout,
             slip_image_path=slip_image_path,
             created_at=datetime.utcnow(),
-            metadata=metadata
+            additional_data=metadata  # ✅ renamed
         )
-        
+
         if legs:
             bet_legs = []
             for leg_data in legs:
@@ -137,14 +161,14 @@ def create_bet(
                     status=leg_data.get('status', 'pending')
                 )
                 bet_legs.append(bet_leg)
-            
+
             new_bet.legs = bet_legs
-        
+
         db.session.add(new_bet)
         db.session.commit()
-        
+
         return new_bet
-    
+
     except SQLAlchemyError as e:
         db.session.rollback()
         raise ValueError(f"Error creating bet: {str(e)}")
